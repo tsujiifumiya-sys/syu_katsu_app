@@ -28,30 +28,32 @@
                 <label for="eventTitleInput">タイトル <span class="required">*</span></label>
                 <input type="text" id="eventTitleInput" required placeholder="例: A社 1次面接">
             </div>
+            <div class="form-group">
+                <label for="eventType">種別</label>
+                <select id="eventType">
+                    {% for t in event_types %}
+                    <option value="{{ t }}">{{ t }}</option>
+                    {% endfor %}
+                </select>
+            </div>
             <div class="form-grid">
                 <div class="form-group">
-                    <label for="eventType">種別</label>
-                    <select id="eventType">
-                        {% for t in event_types %}
-                        <option value="{{ t }}">{{ t }}</option>
-                        {% endfor %}
-                    </select>
+                    <label for="eventStartDate">開始日 <span class="required">*</span></label>
+                    <input type="date" id="eventStartDate" required>
                 </div>
                 <div class="form-group">
-                    <label for="eventCompany">企業</label>
-                    <select id="eventCompany">
-                        <option value="">— なし —</option>
-                    </select>
+                    <label for="eventStartTime">開始時間（任意）</label>
+                    <input type="time" id="eventStartTime" placeholder="未設定OK">
                 </div>
             </div>
             <div class="form-grid">
                 <div class="form-group">
-                    <label for="eventStart">開始日時 <span class="required">*</span></label>
-                    <input type="datetime-local" id="eventStart" required>
+                    <label for="eventEndDate">終了日（任意）</label>
+                    <input type="date" id="eventEndDate">
                 </div>
                 <div class="form-group">
-                    <label for="eventEnd">終了日時</label>
-                    <input type="datetime-local" id="eventEnd">
+                    <label for="eventEndTime">終了時間（任意）</label>
+                    <input type="time" id="eventEndTime">
                 </div>
             </div>
             <div class="form-group">
@@ -120,21 +122,15 @@
         });
         calendar.render();
 
-        // 企業リストを取得
-        fetch('/api/companies')
-            .then(r => r.json())
-            .then(companies => {
-                const sel = document.getElementById('eventCompany');
-                companies.forEach(c => {
-                    const opt = document.createElement('option');
-                    opt.value = c.id;
-                    opt.textContent = c.name;
-                    sel.appendChild(opt);
-                });
-            });
-
         document.getElementById('eventForm').addEventListener('submit', submitEvent);
     });
+
+    // 日付 + 時間を ISO 文字列に結合するヘルパー
+    function buildDatetime(dateVal, timeVal) {
+        if (!dateVal) return '';
+        if (timeVal) return dateVal + 'T' + timeVal;
+        return dateVal;  // 日付のみ（終日イベント）
+    }
 
     function openEventModal(event, startStr, endStr) {
         const modal = document.getElementById('eventModal');
@@ -150,10 +146,26 @@
             deleteBtn.style.display = 'inline-flex';
             document.getElementById('eventTitleInput').value = event.title;
             document.getElementById('eventType').value = event.extendedProps.event_type || 'その他';
-            document.getElementById('eventCompany').value = event.extendedProps.company_id || '';
-            document.getElementById('eventStart').value = event.startStr?.slice(0, 16) || '';
-            document.getElementById('eventEnd').value = event.endStr?.slice(0, 16) || '';
             document.getElementById('eventLocation').value = event.extendedProps.location_or_url || '';
+
+            // 日付・時間を分割してセット
+            const startFull = event.startStr || '';
+            if (startFull.includes('T')) {
+                document.getElementById('eventStartDate').value = startFull.slice(0, 10);
+                document.getElementById('eventStartTime').value = startFull.slice(11, 16);
+            } else {
+                document.getElementById('eventStartDate').value = startFull.slice(0, 10);
+                document.getElementById('eventStartTime').value = '';
+            }
+
+            const endFull = event.endStr || '';
+            if (endFull.includes('T')) {
+                document.getElementById('eventEndDate').value = endFull.slice(0, 10);
+                document.getElementById('eventEndTime').value = endFull.slice(11, 16);
+            } else {
+                document.getElementById('eventEndDate').value = endFull.slice(0, 10);
+                document.getElementById('eventEndTime').value = '';
+            }
         } else {
             // 新規モード
             currentEventId = null;
@@ -161,8 +173,18 @@
             submitBtn.textContent = '追加';
             deleteBtn.style.display = 'none';
             document.getElementById('eventForm').reset();
-            if (startStr) document.getElementById('eventStart').value = startStr.slice(0, 16);
-            if (endStr) document.getElementById('eventEnd').value = endStr.slice(0, 16);
+            if (startStr) {
+                document.getElementById('eventStartDate').value = startStr.slice(0, 10);
+                if (startStr.includes('T')) {
+                    document.getElementById('eventStartTime').value = startStr.slice(11, 16);
+                }
+            }
+            if (endStr) {
+                document.getElementById('eventEndDate').value = endStr.slice(0, 10);
+                if (endStr.includes('T')) {
+                    document.getElementById('eventEndTime').value = endStr.slice(11, 16);
+                }
+            }
         }
 
         modal.style.display = 'flex';
@@ -175,12 +197,20 @@
 
     function submitEvent(e) {
         e.preventDefault();
+        const startVal = buildDatetime(
+            document.getElementById('eventStartDate').value,
+            document.getElementById('eventStartTime').value
+        );
+        const endVal = buildDatetime(
+            document.getElementById('eventEndDate').value,
+            document.getElementById('eventEndTime').value
+        );
         const data = {
             title: document.getElementById('eventTitleInput').value,
             event_type: document.getElementById('eventType').value,
-            company_id: document.getElementById('eventCompany').value || null,
-            start: document.getElementById('eventStart').value,
-            end: document.getElementById('eventEnd').value,
+            company_id: null,
+            start: startVal,
+            end: endVal,
             location_or_url: document.getElementById('eventLocation').value
         };
 
