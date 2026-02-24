@@ -81,25 +81,34 @@
     <a href="{{ url_for('main.company_new') }}" class="btn btn-primary">+ 企業を追加</a>
 </div>
 
-<div class="company-list-dashboard">
-    {% for c in companies %}
-    <a href="{{ url_for('main.company_detail', company_id=c.id) }}" class="company-row-card">
-        <div class="company-row-main">
-            <span class="company-row-name">{{ c.name }}</span>
-            <span class="preference-stars">{{ '★' * c.preference }}{{ '☆' * (5 - c.preference) }}</span>
-        </div>
-        <div class="company-row-meta">
-            {% if c.industry %}<span class="tag">{{ c.industry }}</span>{% endif %}
-            <span class="company-status-badge status-{{ c.status_label }}">{{ c.status_label }}</span>
-        </div>
-    </a>
-    {% endfor %}
-    {% if not companies %}
-    <div class="empty-state">
-        <span class="empty-icon">🏢</span>
-        <p>まだ企業が登録されていません</p>
-        <a href="{{ url_for('main.company_new') }}" class="btn btn-primary btn-sm">企業を追加</a>
-    </div>
-    {% endif %}
+{% if not companies %}
+<div class="empty-state">
+    <span class="empty-icon">🏢</span>
+    <p>まだ企業が登録されていません</p>
+    <a href="{{ url_for('main.company_new') }}" class="btn btn-primary btn-sm">企業を追加</a>
 </div>
+{% else %}
+{% set group_icons = {"エントリー前": "📋", "書類選考前": "📝", "適性検査前": "🧪", "それ以外": "🔄"} %}
+{% for group_name, group_companies in company_groups.items() %}
+{% if group_companies %}
+<div class="company-group" style="margin-bottom: 1.5rem;">
+    <h3 class="company-group-title">{{ group_icons[group_name] }} {{ group_name }}（{{ group_companies|length }}社）</h3>
+    <div class="company-list-dashboard">
+        {% for c in group_companies %}
+        <a href="{{ url_for('main.company_detail', company_id=c.id) }}" class="company-row-card">
+            <div class="company-row-main">
+                <span class="company-row-name">{{ c.name }}</span>
+                <span class="preference-stars">{{ '★' * c.preference }}{{ '☆' * (5 - c.preference) }}</span>
+            </div>
+            <div class="company-row-meta">
+                {% if c.industry %}<span class="tag">{{ c.industry }}</span>{% endif %}
+                <span class="company-status-badge status-{{ c.status_label }}">{{ c.status_label }}</span>
+            </div>
+        </a>
+        {% endfor %}
+    </div>
+</div>
+{% endif %}
+{% endfor %}
+{% endif %}
 {% endblock %}

@@ -1951,3 +1951,12 @@ tr.deadline-soon td:first-child {
         gap: 0.5rem;
     }
 }
+
+/* --- 企業グループタイトル --- */
+.company-group-title {
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: var(--text-secondary);
+    margin-bottom: 0.5rem;
+    padding-left: 0.25rem;
+}

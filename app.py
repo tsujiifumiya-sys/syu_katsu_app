@@ -82,10 +82,29 @@ def dashboard():
     )
     today = date.today()
 
+    # 企業を選考段階でグループ分け
+    company_groups = {
+        "エントリー前": [],
+        "書類選考前": [],
+        "適性検査前": [],
+        "それ以外": [],
+    }
+    for c in companies:
+        latest = c.latest_selection
+        if not latest:
+            company_groups["エントリー前"].append(c)
+        elif latest.stage == "エントリー":
+            company_groups["書類選考前"].append(c)
+        elif latest.stage == "書類選考":
+            company_groups["適性検査前"].append(c)
+        else:
+            company_groups["それ以外"].append(c)
+
     return render_template(
         "dashboard.html",
         user=user,
         companies=companies,
+        company_groups=company_groups,
         upcoming=upcoming,
         es_deadlines=es_deadlines,
         today=today,
