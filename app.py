@@ -155,7 +155,7 @@ def company_detail(company_id):
     # scheduled_at が None でもソートできるよう、Noneを最後に配置
     selections_sorted = sorted(
         company.selections,
-        key=lambda s: s.scheduled_at or datetime.max.replace(tzinfo=timezone.utc),
+        key=lambda s: (s.scheduled_at is None, s.scheduled_at or datetime(9999, 1, 1)),
     )
     return render_template(
         "company_detail.html",

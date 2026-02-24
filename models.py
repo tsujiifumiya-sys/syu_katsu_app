@@ -82,7 +82,7 @@ class Company(db.Model):
         """最新の選考ステータスを返す."""
         if not self.selections:
             return None
-        return max(self.selections, key=lambda s: s.scheduled_at or datetime.min.replace(tzinfo=timezone.utc))
+        return max(self.selections, key=lambda s: s.scheduled_at or datetime(1, 1, 1))
 
     @property
     def status_label(self):
