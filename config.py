@@ -23,9 +23,20 @@ BASE_DIR = _get_base_dir()
 RESOURCE_DIR = _get_resource_dir()
 
 
+def _get_database_uri():
+    """環境変数 DATABASE_URL があれば PostgreSQL，なければ SQLite を使用."""
+    uri = os.environ.get("DATABASE_URL")
+    if uri:
+        # Render/Neon は postgres:// を返すが SQLAlchemy は postgresql:// を要求
+        if uri.startswith("postgres://"):
+            uri = uri.replace("postgres://", "postgresql://", 1)
+        return uri
+    return f"sqlite:///{os.path.join(BASE_DIR, 'syuukatsu.db')}"
+
+
 class Config:
     SECRET_KEY = os.environ.get("SECRET_KEY", "dev-secret-key-change-in-production")
-    SQLALCHEMY_DATABASE_URI = f"sqlite:///{os.path.join(BASE_DIR, 'syuukatsu.db')}"
+    SQLALCHEMY_DATABASE_URI = _get_database_uri()
     SQLALCHEMY_TRACK_MODIFICATIONS = False
     WTF_CSRF_ENABLED = True
 

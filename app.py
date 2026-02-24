@@ -644,14 +644,16 @@ def create_app():
             db.session.commit()
 
     return app
+# ==================================================================
+# アプリケーションインスタンス（gunicorn が app:app でインポート可能）
+# ==================================================================
+app = create_app()
 
 
 if __name__ == "__main__":
     import sys
     import webbrowser
     import threading
-
-    app = create_app()
 
     # exe として実行されている場合はブラウザを自動起動
     is_frozen = getattr(sys, "frozen", False)
