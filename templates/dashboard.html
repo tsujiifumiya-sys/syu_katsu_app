@@ -7,73 +7,9 @@
     <p class="subtitle">就活の全体像を一目で把握</p>
 </div>
 
-<!-- 統計カード -->
-<div class="stats-grid">
-    <div class="stat-card">
-        <div class="stat-icon" style="background: linear-gradient(135deg, #6366f1, #8b5cf6);">🏢</div>
-        <div class="stat-info">
-            <span class="stat-value">{{ stats.total }}</span>
-            <span class="stat-label">登録企業</span>
-        </div>
-    </div>
-    <div class="stat-card">
-        <div class="stat-icon" style="background: linear-gradient(135deg, #3b82f6, #06b6d4);">⚡</div>
-        <div class="stat-info">
-            <span class="stat-value">{{ stats.active }}</span>
-            <span class="stat-label">選考中</span>
-        </div>
-    </div>
-    <div class="stat-card">
-        <div class="stat-icon" style="background: linear-gradient(135deg, #10b981, #34d399);">🎉</div>
-        <div class="stat-info">
-            <span class="stat-value">{{ stats.offer }}</span>
-            <span class="stat-label">内定</span>
-        </div>
-    </div>
-    <div class="stat-card">
-        <div class="stat-icon" style="background: linear-gradient(135deg, #f59e0b, #fbbf24);">📊</div>
-        <div class="stat-info">
-            <span class="stat-value">{% if stats.total > 0 %}{{ ((stats.offer / stats.total) * 100) | round(0) | int
-                }}%{% else %}—{% endif %}</span>
-            <span class="stat-label">内定率</span>
-        </div>
-    </div>
-</div>
-
-<!-- カンバンボード -->
+<!-- 1. 直近のイベント -->
 <div class="section-header">
-    <h2>選考状況</h2>
-    <a href="{{ url_for('main.company_new') }}" class="btn btn-primary">+ 企業を追加</a>
-</div>
-
-<div class="kanban-board">
-    {% for status, companies_in_status in kanban.items() %}
-    <div class="kanban-column">
-        <div class="kanban-header">
-            <span class="kanban-title">{{ status }}</span>
-            <span class="kanban-count">{{ companies_in_status | length }}</span>
-        </div>
-        <div class="kanban-cards">
-            {% for c in companies_in_status %}
-            <a href="{{ url_for('main.company_detail', company_id=c.id) }}" class="kanban-card">
-                <div class="kanban-card-title">{{ c.name }}</div>
-                <div class="kanban-card-meta">
-                    {% if c.industry %}<span class="tag">{{ c.industry }}</span>{% endif %}
-                    <span class="preference-stars">{{ '★' * c.preference }}{{ '☆' * (5 - c.preference) }}</span>
-                </div>
-            </a>
-            {% endfor %}
-            {% if not companies_in_status %}
-            <div class="kanban-empty">まだありません</div>
-            {% endif %}
-        </div>
-    </div>
-    {% endfor %}
-</div>
-
-<!-- 直近のイベント -->
-<div class="section-header" style="margin-top: 2rem;">
-    <h2>直近のイベント</h2>
+    <h2>📅 直近のイベント</h2>
     <a href="{{ url_for('main.calendar_view') }}" class="btn btn-ghost">カレンダーを見る →</a>
 </div>
 
@@ -103,7 +39,7 @@
     {% endif %}
 </div>
 
-<!-- ES締切ウィジェット -->
+<!-- 2. ES締切が近い -->
 <div class="section-header" style="margin-top: 2rem;">
     <h2>📝 ES締切が近い</h2>
     <a href="{{ url_for('main.es_list') }}" class="btn btn-ghost">ES一覧 →</a>
@@ -135,6 +71,34 @@
     <div class="empty-state" style="grid-column: 1 / -1;">
         <span class="empty-icon">✅</span>
         <p>未提出のESはありません</p>
+    </div>
+    {% endif %}
+</div>
+
+<!-- 3. 登録企業一覧 -->
+<div class="section-header" style="margin-top: 2rem;">
+    <h2>🏢 登録企業一覧</h2>
+    <a href="{{ url_for('main.company_new') }}" class="btn btn-primary">+ 企業を追加</a>
+</div>
+
+<div class="company-list-dashboard">
+    {% for c in companies %}
+    <a href="{{ url_for('main.company_detail', company_id=c.id) }}" class="company-row-card">
+        <div class="company-row-main">
+            <span class="company-row-name">{{ c.name }}</span>
+            <span class="preference-stars">{{ '★' * c.preference }}{{ '☆' * (5 - c.preference) }}</span>
+        </div>
+        <div class="company-row-meta">
+            {% if c.industry %}<span class="tag">{{ c.industry }}</span>{% endif %}
+            <span class="company-status-badge status-{{ c.status_label }}">{{ c.status_label }}</span>
+        </div>
+    </a>
+    {% endfor %}
+    {% if not companies %}
+    <div class="empty-state">
+        <span class="empty-icon">🏢</span>
+        <p>まだ企業が登録されていません</p>
+        <a href="{{ url_for('main.company_new') }}" class="btn btn-primary btn-sm">企業を追加</a>
     </div>
     {% endif %}
 </div>

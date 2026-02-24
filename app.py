@@ -58,7 +58,8 @@ def _parse_datetime(value):
 @main_bp.route("/")
 def dashboard():
     user = User.query.first()
-    companies = Company.query.filter_by(user_id=user.id).all()
+    companies = Company.query.filter_by(user_id=user.id).order_by(Company.preference.desc()).all()
+
     upcoming = (
         Schedule.query.filter_by(user_id=user.id)
         .filter(Schedule.start_at >= datetime.now(timezone.utc))
@@ -66,33 +67,6 @@ def dashboard():
         .limit(5)
         .all()
     )
-
-    kanban = {
-        "未応募": [],
-        "選考中": [],
-        "内定": [],
-        "不合格": [],
-        "辞退": [],
-    }
-    for c in companies:
-        status = c.status_label
-        if status in ("内定",):
-            kanban["内定"].append(c)
-        elif status in ("不合格",):
-            kanban["不合格"].append(c)
-        elif status in ("辞退",):
-            kanban["辞退"].append(c)
-        elif status == "未応募":
-            kanban["未応募"].append(c)
-        else:
-            kanban["選考中"].append(c)
-
-    stats = {
-        "total": len(companies),
-        "active": len(kanban["選考中"]),
-        "offer": len(kanban["内定"]),
-        "rejected": len(kanban["不合格"]),
-    }
 
     # ES締切ウィジェット: 未提出のESを締切順で取得
     from datetime import date
@@ -110,9 +84,8 @@ def dashboard():
     return render_template(
         "dashboard.html",
         user=user,
-        kanban=kanban,
+        companies=companies,
         upcoming=upcoming,
-        stats=stats,
         es_deadlines=es_deadlines,
         today=today,
     )

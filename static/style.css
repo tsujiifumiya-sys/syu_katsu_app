@@ -1866,3 +1866,88 @@ tr.deadline-soon td:first-child {
         font-size: 0.78rem;
     }
 }
+
+/* ============================================================
+   ダッシュボード — 企業一覧カード
+   ============================================================ */
+.company-list-dashboard {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.company-row-card {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 1rem 1.25rem;
+    background: var(--bg-secondary);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    text-decoration: none;
+    color: var(--text-primary);
+    transition: all 0.2s ease;
+}
+
+.company-row-card:hover {
+    border-color: var(--accent-primary);
+    transform: translateX(4px);
+    background: var(--bg-tertiary);
+}
+
+.company-row-main {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.company-row-name {
+    font-weight: 600;
+    font-size: 0.95rem;
+}
+
+.company-row-meta {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.company-status-badge {
+    padding: 0.2rem 0.6rem;
+    border-radius: 999px;
+    font-size: 0.75rem;
+    font-weight: 600;
+}
+
+.company-status-badge.status-未応募 {
+    background: rgba(107, 114, 128, 0.2);
+    color: #9ca3af;
+}
+
+.company-status-badge.status-選考中 {
+    background: rgba(59, 130, 246, 0.2);
+    color: #60a5fa;
+}
+
+.company-status-badge.status-内定 {
+    background: rgba(16, 185, 129, 0.2);
+    color: #34d399;
+}
+
+.company-status-badge.status-不合格 {
+    background: rgba(239, 68, 68, 0.2);
+    color: #f87171;
+}
+
+.company-status-badge.status-辞退 {
+    background: rgba(245, 158, 11, 0.2);
+    color: #fbbf24;
+}
+
+@media (max-width: 768px) {
+    .company-row-card {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.5rem;
+    }
+}
