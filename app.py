@@ -209,11 +209,8 @@ def api_events():
     events = []
     color_map = {
         "説明会": "#6366f1",
-        "ES締切": "#f59e0b",
-        "Webテスト": "#10b981",
+        "ES締め切り": "#f59e0b",
         "面接": "#ef4444",
-        "OB訪問": "#8b5cf6",
-        "内定承諾期限": "#ec4899",
         "その他": "#64748b",
     }
     for s in schedules:
