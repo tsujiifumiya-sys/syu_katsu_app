@@ -1,0 +1,218 @@
+{% extends "base.html" %}
+{% block title %}カレンダー{% endblock %}
+
+{% block head_extra %}
+<!-- FullCalendar CSS はJS内にバンドル済み（v6） -->
+{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1>スケジュール</h1>
+    <button class="btn btn-primary" onclick="openEventModal()">+ イベント追加</button>
+</div>
+
+<div class="calendar-container">
+    <div id="calendar"></div>
+</div>
+
+<!-- イベント追加モーダル -->
+<div class="modal-overlay" id="eventModal" style="display:none;">
+    <div class="modal">
+        <div class="modal-header">
+            <h3 id="modalTitle">イベントを追加</h3>
+            <button class="modal-close" onclick="closeModal()">✕</button>
+        </div>
+        <form id="eventForm" class="modal-body">
+            <input type="hidden" id="eventId" value="">
+            <div class="form-group">
+                <label for="eventTitleInput">タイトル <span class="required">*</span></label>
+                <input type="text" id="eventTitleInput" required placeholder="例: A社 1次面接">
+            </div>
+            <div class="form-grid">
+                <div class="form-group">
+                    <label for="eventType">種別</label>
+                    <select id="eventType">
+                        {% for t in event_types %}
+                        <option value="{{ t }}">{{ t }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="eventCompany">企業</label>
+                    <select id="eventCompany">
+                        <option value="">— なし —</option>
+                    </select>
+                </div>
+            </div>
+            <div class="form-grid">
+                <div class="form-group">
+                    <label for="eventStart">開始日時 <span class="required">*</span></label>
+                    <input type="datetime-local" id="eventStart" required>
+                </div>
+                <div class="form-group">
+                    <label for="eventEnd">終了日時</label>
+                    <input type="datetime-local" id="eventEnd">
+                </div>
+            </div>
+            <div class="form-group">
+                <label for="eventLocation">場所 / URL</label>
+                <input type="text" id="eventLocation" placeholder="オンラインの場合はURLを入力">
+            </div>
+            <div class="form-actions">
+                <button type="submit" class="btn btn-primary" id="eventSubmitBtn">追加</button>
+                <button type="button" class="btn btn-danger-ghost" id="eventDeleteBtn" style="display:none;"
+                    onclick="deleteEvent()">削除</button>
+                <button type="button" class="btn btn-ghost" onclick="closeModal()">キャンセル</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='vendor/fullcalendar.min.js') }}"></script>
+<script src="{{ url_for('static', filename='vendor/fullcalendar-ja.min.js') }}"></script>
+<script>
+    let calendar;
+    let currentEventId = null;
+
+    document.addEventListener('DOMContentLoaded', function () {
+        const calendarEl = document.getElementById('calendar');
+        calendar = new FullCalendar.Calendar(calendarEl, {
+            locale: 'ja',
+            initialView: 'dayGridMonth',
+            headerToolbar: {
+                left: 'prev,next today',
+                center: 'title',
+                right: 'dayGridMonth,timeGridWeek,timeGridDay'
+            },
+            events: '/api/events',
+            editable: true,
+            selectable: true,
+            height: 'auto',
+            eventClick: function (info) {
+                openEventModal(info.event);
+            },
+            select: function (info) {
+                openEventModal(null, info.startStr, info.endStr);
+            },
+            eventDrop: function (info) {
+                fetch(`/api/events/${info.event.id}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        start: info.event.startStr,
+                        end: info.event.endStr
+                    })
+                });
+            },
+            eventResize: function (info) {
+                fetch(`/api/events/${info.event.id}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        start: info.event.startStr,
+                        end: info.event.endStr
+                    })
+                });
+            }
+        });
+        calendar.render();
+
+        // 企業リストを取得
+        fetch('/api/companies')
+            .then(r => r.json())
+            .then(companies => {
+                const sel = document.getElementById('eventCompany');
+                companies.forEach(c => {
+                    const opt = document.createElement('option');
+                    opt.value = c.id;
+                    opt.textContent = c.name;
+                    sel.appendChild(opt);
+                });
+            });
+
+        document.getElementById('eventForm').addEventListener('submit', submitEvent);
+    });
+
+    function openEventModal(event, startStr, endStr) {
+        const modal = document.getElementById('eventModal');
+        const title = document.getElementById('modalTitle');
+        const submitBtn = document.getElementById('eventSubmitBtn');
+        const deleteBtn = document.getElementById('eventDeleteBtn');
+
+        if (event && event.id) {
+            // 編集モード
+            currentEventId = event.id;
+            title.textContent = 'イベントを編集';
+            submitBtn.textContent = '更新';
+            deleteBtn.style.display = 'inline-flex';
+            document.getElementById('eventTitleInput').value = event.title;
+            document.getElementById('eventType').value = event.extendedProps.event_type || 'その他';
+            document.getElementById('eventCompany').value = event.extendedProps.company_id || '';
+            document.getElementById('eventStart').value = event.startStr?.slice(0, 16) || '';
+            document.getElementById('eventEnd').value = event.endStr?.slice(0, 16) || '';
+            document.getElementById('eventLocation').value = event.extendedProps.location_or_url || '';
+        } else {
+            // 新規モード
+            currentEventId = null;
+            title.textContent = 'イベントを追加';
+            submitBtn.textContent = '追加';
+            deleteBtn.style.display = 'none';
+            document.getElementById('eventForm').reset();
+            if (startStr) document.getElementById('eventStart').value = startStr.slice(0, 16);
+            if (endStr) document.getElementById('eventEnd').value = endStr.slice(0, 16);
+        }
+
+        modal.style.display = 'flex';
+    }
+
+    function closeModal() {
+        document.getElementById('eventModal').style.display = 'none';
+        currentEventId = null;
+    }
+
+    function submitEvent(e) {
+        e.preventDefault();
+        const data = {
+            title: document.getElementById('eventTitleInput').value,
+            event_type: document.getElementById('eventType').value,
+            company_id: document.getElementById('eventCompany').value || null,
+            start: document.getElementById('eventStart').value,
+            end: document.getElementById('eventEnd').value,
+            location_or_url: document.getElementById('eventLocation').value
+        };
+
+        if (currentEventId) {
+            fetch(`/api/events/${currentEventId}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data)
+            }).then(() => {
+                calendar.refetchEvents();
+                closeModal();
+            });
+        } else {
+            fetch('/api/events', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data)
+            }).then(() => {
+                calendar.refetchEvents();
+                closeModal();
+            });
+        }
+    }
+
+    function deleteEvent() {
+        if (!currentEventId) return;
+        if (!confirm('このイベントを削除しますか？')) return;
+        fetch(`/api/events/${currentEventId}`, { method: 'DELETE' })
+            .then(() => {
+                calendar.refetchEvents();
+                closeModal();
+            });
+    }
+</script>
+{% endblock %}

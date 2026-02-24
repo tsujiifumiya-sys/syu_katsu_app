@@ -1,0 +1,141 @@
+{% extends "base.html" %}
+{% block title %}ダッシュボード{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1>ダッシュボード</h1>
+    <p class="subtitle">就活の全体像を一目で把握</p>
+</div>
+
+<!-- 統計カード -->
+<div class="stats-grid">
+    <div class="stat-card">
+        <div class="stat-icon" style="background: linear-gradient(135deg, #6366f1, #8b5cf6);">🏢</div>
+        <div class="stat-info">
+            <span class="stat-value">{{ stats.total }}</span>
+            <span class="stat-label">登録企業</span>
+        </div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-icon" style="background: linear-gradient(135deg, #3b82f6, #06b6d4);">⚡</div>
+        <div class="stat-info">
+            <span class="stat-value">{{ stats.active }}</span>
+            <span class="stat-label">選考中</span>
+        </div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-icon" style="background: linear-gradient(135deg, #10b981, #34d399);">🎉</div>
+        <div class="stat-info">
+            <span class="stat-value">{{ stats.offer }}</span>
+            <span class="stat-label">内定</span>
+        </div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-icon" style="background: linear-gradient(135deg, #f59e0b, #fbbf24);">📊</div>
+        <div class="stat-info">
+            <span class="stat-value">{% if stats.total > 0 %}{{ ((stats.offer / stats.total) * 100) | round(0) | int
+                }}%{% else %}—{% endif %}</span>
+            <span class="stat-label">内定率</span>
+        </div>
+    </div>
+</div>
+
+<!-- カンバンボード -->
+<div class="section-header">
+    <h2>選考状況</h2>
+    <a href="{{ url_for('main.company_new') }}" class="btn btn-primary">+ 企業を追加</a>
+</div>
+
+<div class="kanban-board">
+    {% for status, companies_in_status in kanban.items() %}
+    <div class="kanban-column">
+        <div class="kanban-header">
+            <span class="kanban-title">{{ status }}</span>
+            <span class="kanban-count">{{ companies_in_status | length }}</span>
+        </div>
+        <div class="kanban-cards">
+            {% for c in companies_in_status %}
+            <a href="{{ url_for('main.company_detail', company_id=c.id) }}" class="kanban-card">
+                <div class="kanban-card-title">{{ c.name }}</div>
+                <div class="kanban-card-meta">
+                    {% if c.industry %}<span class="tag">{{ c.industry }}</span>{% endif %}
+                    <span class="preference-stars">{{ '★' * c.preference }}{{ '☆' * (5 - c.preference) }}</span>
+                </div>
+            </a>
+            {% endfor %}
+            {% if not companies_in_status %}
+            <div class="kanban-empty">まだありません</div>
+            {% endif %}
+        </div>
+    </div>
+    {% endfor %}
+</div>
+
+<!-- 直近のイベント -->
+<div class="section-header" style="margin-top: 2rem;">
+    <h2>直近のイベント</h2>
+    <a href="{{ url_for('main.calendar_view') }}" class="btn btn-ghost">カレンダーを見る →</a>
+</div>
+
+<div class="upcoming-events">
+    {% for ev in upcoming %}
+    <div class="event-card">
+        <div class="event-date">
+            <span class="event-month">{{ ev.start_at.strftime('%m') }}月</span>
+            <span class="event-day">{{ ev.start_at.strftime('%d') }}</span>
+        </div>
+        <div class="event-info">
+            <span class="event-title">{{ ev.title }}</span>
+            <span class="event-meta">
+                <span class="event-type-badge">{{ ev.event_type }}</span>
+                {% if ev.company %} · {{ ev.company.name }}{% endif %}
+                · {{ ev.start_at.strftime('%H:%M') }}
+            </span>
+        </div>
+    </div>
+    {% endfor %}
+    {% if not upcoming %}
+    <div class="empty-state">
+        <span class="empty-icon">📅</span>
+        <p>直近の予定はありません</p>
+        <a href="{{ url_for('main.calendar_view') }}" class="btn btn-primary btn-sm">イベントを追加</a>
+    </div>
+    {% endif %}
+</div>
+
+<!-- ES締切ウィジェット -->
+<div class="section-header" style="margin-top: 2rem;">
+    <h2>📝 ES締切が近い</h2>
+    <a href="{{ url_for('main.es_list') }}" class="btn btn-ghost">ES一覧 →</a>
+</div>
+
+<div class="es-deadline-grid">
+    {% for es in es_deadlines %}
+    {% set days_left = (es.deadline - today).days %}
+    <div
+        class="es-deadline-card {% if days_left <= 3 %}deadline-critical{% elif days_left <= 7 %}deadline-warning{% endif %}">
+        <div class="es-deadline-top">
+            <span class="tag">{{ es.company.name }}</span>
+            <span class="es-days-left {% if days_left <= 3 %}urgent{% elif days_left <= 7 %}soon{% endif %}">
+                {% if days_left < 0 %} {{ -days_left }}日超過 {% elif days_left==0 %} 今日 {% elif days_left==1 %} 明日 {% else
+                    %} あと{{ days_left }}日 {% endif %} </span>
+        </div>
+        <div class="es-deadline-question">{{ es.question[:60] }}{% if es.question|length > 60 %}…{% endif %}</div>
+        <div class="es-deadline-bottom">
+            <span class="text-muted">{{ es.deadline.strftime('%m/%d') }} 締切</span>
+            {% if es.char_limit %}
+            <span class="char-count {% if es.answer|length > es.char_limit %}over-limit{% endif %}">
+                {{ es.answer|length }}/{{ es.char_limit }}字
+            </span>
+            {% endif %}
+        </div>
+    </div>
+    {% endfor %}
+    {% if not es_deadlines %}
+    <div class="empty-state" style="grid-column: 1 / -1;">
+        <span class="empty-icon">✅</span>
+        <p>未提出のESはありません</p>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

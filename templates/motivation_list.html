@@ -1,0 +1,64 @@
+{% extends "base.html" %}
+{% block title %}志望動機管理{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1>💌 志望動機管理</h1>
+    <a href="{{ url_for('main.motivation_new') }}" class="btn btn-primary">+ 新規追加</a>
+</div>
+
+{% set has_any = [] %}
+{% for company in companies %}
+{% if company.motivations %}
+{% if has_any.append(1) %}{% endif %}
+{% endif %}
+{% endfor %}
+
+{% if has_any %}
+{% for company in companies %}
+{% if company.motivations %}
+<div class="section-card">
+    <div class="section-card-header">
+        <h2>🏢 {{ company.name }}</h2>
+        <span class="preference-stars">{{ '★' * company.preference }}{{ '☆' * (5 - company.preference) }}</span>
+    </div>
+    <div class="motivation-versions">
+        {% for mot in company.motivations|sort(attribute='version', reverse=True) %}
+        <div class="motivation-card">
+            <div class="motivation-header">
+                <div class="motivation-meta">
+                    <span class="version-badge">v{{ mot.version }}</span>
+                    <span class="tag">{{ mot.target_use or 'ES' }}</span>
+                    <span class="text-muted">{{ mot.created_at.strftime('%Y/%m/%d') if mot.created_at else '' }}</span>
+                </div>
+                <div class="motivation-actions">
+                    <a href="{{ url_for('main.motivation_edit', mot_id=mot.id) }}" class="btn btn-sm btn-ghost">✏️</a>
+                    <form method="POST" action="{{ url_for('main.motivation_delete', mot_id=mot.id) }}"
+                        class="inline-form" onsubmit="return confirm('削除しますか？')">
+                        <button type="submit" class="btn btn-sm btn-danger-ghost">🗑️</button>
+                    </form>
+                </div>
+            </div>
+            <div class="motivation-content">
+                <p>{{ mot.content }}</p>
+            </div>
+            {% if mot.review_notes %}
+            <div class="motivation-review">
+                <strong>📌 添削メモ:</strong>
+                <p>{{ mot.review_notes }}</p>
+            </div>
+            {% endif %}
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endif %}
+{% endfor %}
+{% else %}
+<div class="empty-state">
+    <span class="empty-icon">💌</span>
+    <p>まだ志望動機が登録されていません</p>
+    <a href="{{ url_for('main.motivation_new') }}" class="btn btn-primary">最初の志望動機を追加</a>
+</div>
+{% endif %}
+{% endblock %}

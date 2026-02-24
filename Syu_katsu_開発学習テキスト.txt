@@ -1,0 +1,853 @@
+================================================================================
+  Syu_katsu 開発から学ぶ Webアプリ開発入門
+  ── 全くの初学者のための実践ガイド ──
+================================================================================
+
+  本テキストは、就活管理アプリ「Syu_katsu」の開発で行った全プロセスを
+  初学者向けに解説した学習教材です。
+  各章で「何をしたか」「なぜそうしたか」「どのファイルを見ればわかるか」
+  を丁寧に説明しています。
+
+  対応ファイル: このテキストと同じフォルダにある全ファイルが教材です。
+  実際のコードを読みながら本テキストを進めてください。
+
+================================================================================
+目次
+================================================================================
+
+  第1章  Webアプリケーションとは何か
+  第2章  開発環境のセットアップ
+  第3章  プロジェクト構成を理解する
+  第4章  データベース設計（models.py）
+  第5章  サーバーサイドの処理（app.py）
+  第6章  テンプレートとHTML（templates/）
+  第7章  デザインとCSS（static/style.css）
+  第8章  JavaScriptによるインタラクション
+  第9章  設定ファイルの役割（config.py）
+  第10章 ポータブル化（PyInstaller）
+  第11章 オフライン対応
+  第12章 ドキュメント作成
+  第13章 開発で学んだ重要な概念まとめ
+
+
+================================================================================
+第1章  Webアプリケーションとは何か
+================================================================================
+
+■ Webアプリの仕組み
+
+  Webアプリは「サーバー」と「ブラウザ（クライアント）」の2つで構成されます。
+
+    ┌────────────┐          ┌────────────┐
+    │  ブラウザ  │ ←─ HTTP ─→ │  サーバー  │
+    │ (Chrome等) │          │ (Flask)    │
+    └────────────┘          └────────────┘
+         ↑                        ↑
+    ユーザーが見る画面      裏側でデータ処理
+
+  1. ユーザーがブラウザでURL（例: http://127.0.0.1:5000/ ）を開く
+  2. サーバー（Flask）がリクエストを受け取る
+  3. サーバーがデータベースからデータを取得し、HTMLを生成する
+  4. ブラウザがHTMLを受け取り、画面を表示する
+
+  本アプリでは「Flask」というPythonのフレームワーク（骨組み）を使っています。
+  フレームワークとは、よく使う機能（URLの処理、HTMLの生成など）を
+  あらかじめ用意してくれるツールキットのことです。
+
+■ 本アプリで使った技術一覧
+
+  ・Python       ...... プログラミング言語（サーバー処理に使用）
+  ・Flask        ...... PythonのWebフレームワーク
+  ・SQLAlchemy   ...... データベース操作ライブラリ（ORM）
+  ・SQLite       ...... 軽量データベース（ファイル1つで動く）
+  ・Jinja2       ...... HTMLテンプレートエンジン（Flask標準）
+  ・HTML/CSS/JS  ...... ブラウザ側の表示・スタイル・動作
+  ・PyInstaller  ...... Pythonアプリをexe化するツール
+
+
+================================================================================
+第2章  開発環境のセットアップ
+================================================================================
+
+■ 仮想環境（venv）とは
+
+  Pythonの「仮想環境」は、プロジェクトごとに独立した環境を作る仕組みです。
+  これにより、プロジェクトAとプロジェクトBで異なるバージョンのライブラリを
+  使うことができます。
+
+  → 対応ファイル: requirements.txt
+
+  【実際に行ったコマンド】
+  
+    python -m venv venv          # 仮想環境を作成
+    .\venv\Scripts\activate      # 仮想環境を有効化（Windows）
+    pip install -r requirements.txt  # 必要なライブラリを一括インストール
+
+■ requirements.txt の内容
+
+  Flask              ...... Webフレームワーク本体
+  Flask-SQLAlchemy   ...... FlaskでSQLAlchemyを簡単に使うための拡張
+  Flask-WTF          ...... フォーム処理に便利な拡張
+  cryptography       ...... セキュリティ関連
+
+  このファイルがあることで、他の人が同じ環境を簡単に再現できます。
+  「pip freeze > requirements.txt」で現在の環境を書き出せます。
+
+
+================================================================================
+第3章  プロジェクト構成を理解する
+================================================================================
+
+■ フォルダ構成
+
+    syuukatsu_app/
+    ├── app.py              ← メインのサーバープログラム
+    ├── config.py           ← 設定ファイル
+    ├── models.py           ← データベースの「設計図」
+    ├── requirements.txt    ← 必要なライブラリ一覧
+    ├── syuukatsu.db        ← SQLiteデータベース（自動生成）
+    │
+    ├── static/             ← 静的ファイル（変化しないファイル）
+    │   ├── style.css       ← デザイン（CSS）
+    │   ├── fonts/          ← フォントファイル
+    │   └── vendor/         ← 外部ライブラリ（FullCalendar等）
+    │
+    ├── templates/          ← HTMLテンプレート
+    │   ├── base.html       ← 全ページ共通のレイアウト
+    │   ├── dashboard.html  ← ダッシュボード
+    │   └── ...             ← その他の画面
+    │
+    └── dist/               ← ポータブル版（exe）の出力先
+        └── Syu_katsu/
+
+■ なぜこの構成なのか
+
+  Flask には「規約」があります:
+  
+  ・templates/ フォルダ → HTMLテンプレートを置く場所（Flask が自動認識）
+  ・static/ フォルダ    → CSS、画像、JSなどを置く場所（Flask が自動認識）
+  
+  この規約に従うことで、Flask が自動的にファイルを見つけてくれます。
+  独自の名前にすると、設定が複雑になります。
+
+
+================================================================================
+第4章  データベース設計（models.py）
+================================================================================
+
+  → 対応ファイル: models.py
+
+■ ORM（Object-Relational Mapping）とは
+
+  通常、データベースを操作するにはSQL文を書きます:
+  
+    SELECT * FROM companies WHERE user_id = 1;
+
+  ORMを使うと、Pythonのコードで書けます:
+  
+    Company.query.filter_by(user_id=1).all()
+
+  「データベースのテーブル = Pythonのクラス」という対応付けがORMの本質です。
+  SQLAlchemy はPythonで最も人気のあるORMです。
+
+■ models.py の読み方
+
+  models.py を開いてみてください。以下のパターンが繰り返されています:
+
+  ──────────────────────────────────────────
+  class User(db.Model):              ← 「users」テーブルに対応するクラス
+      __tablename__ = "users"        ← テーブル名を指定
+
+      id = db.Column(db.Integer, primary_key=True)   ← 主キー（自動連番）
+      name = db.Column(db.String(100), nullable=False, default="ユーザー")
+      email = db.Column(db.String(200), unique=True, nullable=True)
+  ──────────────────────────────────────────
+
+  各行の意味:
+  ・db.Column(...)   → テーブルの「列（カラム）」を定義
+  ・db.Integer       → 整数型
+  ・db.String(100)   → 最大100文字の文字列型
+  ・db.Text          → 長い文字列型（文字数制限なし）
+  ・db.Date          → 日付型
+  ・db.DateTime      → 日時型
+  ・primary_key=True → その行を一意に特定するID
+  ・nullable=False   → 空（NULL）を許可しない（＝必須項目）
+  ・unique=True      → 重複を許可しない
+  ・default=...      → 値が指定されなかった時のデフォルト値
+
+■ リレーション（テーブル間の関係）
+
+  models.py にはこのような記述があります:
+
+  ──────────────────────────────────────────
+  # User クラス内
+  companies = db.relationship("Company", backref="user", ...)
+  
+  # Company クラス内
+  user_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=False)
+  ──────────────────────────────────────────
+
+  これは「1人のユーザーが複数の企業を登録できる」関係（1対多）を表しています。
+
+    ┌──────┐        ┌───────────┐
+    │ User │ 1 ─── N│  Company  │
+    └──────┘        └───────────┘
+                         │
+                    ┌────┴────┐
+                    N        N
+               ┌────────┐ ┌────────────┐
+               │Selection│ │ EntrySheet │
+               └────────┘ └────────────┘
+
+  ・ForeignKey("users.id") → 「この列は users テーブルの id を参照する」
+  ・relationship(...)      → 「user.companies でその人の全企業を取得できる」
+  ・backref="user"         → 「company.user でその企業の所有者を取得できる」
+  ・cascade="all, delete-orphan"
+    → ユーザーを削除したら、関連する企業も自動削除される
+
+■ 本アプリのテーブル一覧
+
+  テーブル名            役割
+  ─────────────────────────────────────────────
+  users                 ユーザー情報
+  companies             企業情報（志望度、業界、マイページURL等）
+  selections            選考ステージ（ES→1次面接→...）
+  job_axes              就活軸（「成長環境」「給与」など）
+  company_axis_match    企業×軸の合致スコア（多対多の中間テーブル）
+  entry_sheets          ES設問・回答・文字数制限・締切
+  motivations           志望動機（バージョン管理付き）
+  schedules             スケジュール（カレンダーイベント）
+  self_analyses         自己分析（自己PR、ガクチカ等）
+  interview_notes       面接メモ
+
+
+================================================================================
+第5章  サーバーサイドの処理（app.py）
+================================================================================
+
+  → 対応ファイル: app.py
+
+■ ルーティングとは
+
+  「URL」と「処理する関数」を対応付けることを「ルーティング」といいます。
+  
+  app.py を開くと、このようなパターンが何度も出てきます:
+
+  ──────────────────────────────────────────
+  @main_bp.route("/")          ← URLが「/」のとき
+  def dashboard():             ← この関数を実行
+      user = User.query.first()
+      companies = Company.query.filter_by(user_id=user.id).all()
+      ...
+      return render_template("dashboard.html", user=user, ...)
+  ──────────────────────────────────────────
+
+  ・@main_bp.route("/")   → デコレータ（URLと関数を紐付ける魔法の記述）
+  ・User.query.first()    → usersテーブルから最初の1件を取得
+  ・Company.query.filter_by(...) → 条件に合う企業を検索
+  ・render_template(...)  → HTMLテンプレートにデータを埋め込んで返す
+
+■ CRUD操作
+
+  「CRUD」はデータ操作の基本4パターンです:
+
+    C = Create（作成）  → db.session.add(xxx); db.session.commit()
+    R = Read（読み取り）→ XXX.query.filter_by(...).all()
+    U = Update（更新）  → xxx.name = "新しい名前"; db.session.commit()
+    D = Delete（削除）  → db.session.delete(xxx); db.session.commit()
+
+  本アプリでは、ほぼ全ての機能がこのCRUDパターンで実装されています。
+  例えば「ES管理」なら:
+
+    /es           → 一覧表示（Read）
+    /es/new       → 新規追加フォーム + 保存処理（Create）
+    /es/<id>/edit → 編集フォーム + 更新処理（Update）
+    /es/<id>/delete → 削除処理（Delete）
+
+■ Blueprint（設計図）
+
+  app.py の冒頭でこう書かれています:
+
+  ──────────────────────────────────────────
+  main_bp = Blueprint("main", __name__)
+  ──────────────────────────────────────────
+
+  Blueprintは、ルートを「部品」としてまとめる仕組みです。
+  小さなアプリでは不要ですが、機能が増えると整理に役立ちます。
+  
+  Blueprint を使うと、url_for() でリンクを作るときに
+  「main.dashboard」のようにプレフィックスを付けます:
+
+    url_for('main.dashboard')      → /
+    url_for('main.es_list')        → /es
+    url_for('main.axis_matrix')    → /matrix
+
+■ アプリケーションファクトリ
+
+  app.py の末尾にある create_app() 関数は
+  「アプリケーションファクトリ」パターンと呼ばれます:
+
+  ──────────────────────────────────────────
+  def create_app():
+      app = Flask(
+          __name__,
+          template_folder=os.path.join(RESOURCE_DIR, "templates"),
+          static_folder=os.path.join(RESOURCE_DIR, "static"),
+      )
+      app.config.from_object(Config)
+      db.init_app(app)
+      app.register_blueprint(main_bp)
+
+      with app.app_context():
+          db.create_all()   ← テーブルが存在しなければ自動作成
+          ...
+      return app
+  ──────────────────────────────────────────
+
+  利点: テスト時に別の設定でアプリを作れる、import時に副作用がない、等。
+
+■ HTTPメソッド
+
+  Webでは「GET」と「POST」という2種類のリクエストが最も重要です:
+  
+  ・GET  → データを取得する（ページを表示する）
+  ・POST → データを送信する（フォームの送信）
+
+  app.py ではこう使い分けています:
+  
+  ──────────────────────────────────────────
+  @main_bp.route("/es/new", methods=["GET", "POST"])
+  def es_new():
+      if request.method == "POST":
+          # フォームから送信されたデータを処理（Create）
+          ...
+          return redirect(url_for("main.es_list"))
+      # GETの場合: フォームを表示
+      return render_template("es_form.html", ...)
+  ──────────────────────────────────────────
+
+  同じURLでも、GETなら「フォーム表示」、POSTなら「データ保存」と
+  処理を分岐させるのが一般的なパターンです。
+
+
+================================================================================
+第6章  テンプレートとHTML（templates/）
+================================================================================
+
+  → 対応ファイル: templates/ フォルダ内の *.html ファイル
+
+■ Jinja2テンプレートエンジン
+
+  HTMLの中にPythonの変数やロジックを埋め込む仕組みです。
+  Flask標準で、{{ }} と {% %} の2種類の記法を使います。
+
+    {{ 変数 }}          → 変数の値を出力
+    {% if 条件 %}...{% endif %}  → 条件分岐
+    {% for x in list %}...{% endfor %}  → ループ
+
+  例（dashboard.html より）:
+  
+  ──────────────────────────────────────────
+  <span class="stat-value">{{ stats.total }}</span>
+  ──────────────────────────────────────────
+  
+  → stats.total の値（例: 5）がHTMLに埋め込まれて表示される
+
+■ テンプレート継承（最重要概念）
+
+  → 対応ファイル: templates/base.html
+
+  全ページに共通するレイアウト（サイドバー、ヘッダー等）を
+  base.html に定義し、各ページで「継承」します。
+
+  ──────────────────────────────────────────
+  【base.html】（親テンプレート）
+
+  <html>
+  <body>
+    <nav>サイドバー（全ページ共通）</nav>
+    <main>
+      {% block content %}{% endblock %}   ← ここが「穴」
+    </main>
+  </body>
+  </html>
+  ──────────────────────────────────────────
+
+  ──────────────────────────────────────────
+  【dashboard.html】（子テンプレート）
+
+  {% extends "base.html" %}          ← base.html を継承
+  {% block content %}                ← 「穴」を埋める
+    <h1>ダッシュボード</h1>
+    ...このページ固有の内容...
+  {% endblock %}
+  ──────────────────────────────────────────
+
+  これにより、サイドバーやフッターを全ページに書く必要がなくなります。
+  修正も base.html を変えるだけで全ページに反映されます。
+
+■ url_for() 関数
+
+  テンプレート内でリンクを作るとき、URLを直接書かず url_for() を使います:
+
+    ✕ <a href="/companies/new">追加</a>         ← URLが変わると壊れる
+    ○ <a href="{{ url_for('main.company_new') }}">追加</a>  ← 安全
+
+  url_for() は関数名からURLを自動生成するので、URLを変更しても
+  リンクが壊れません。
+
+■ フィルター
+
+  Jinja2にはデータを加工する「フィルター」があります:
+
+    {{ es.question[:60] }}{% if es.question|length > 60 %}…{% endif %}
+
+  ・|length → 文字列の長さを取得
+  ・[:60]   → 最初の60文字だけ取得（Pythonのスライス）
+
+
+================================================================================
+第7章  デザインとCSS（static/style.css）
+================================================================================
+
+  → 対応ファイル: static/style.css
+
+■ CSSカスタムプロパティ（CSS変数）
+
+  style.css の冒頭で「色」や「サイズ」を変数として定義しています:
+
+  ──────────────────────────────────────────
+  :root {
+      --bg-primary: #0f1117;        ← 背景色（濃い紺色）
+      --accent-primary: #6366f1;    ← アクセントカラー（紫）
+      --text-primary: #e8eaed;      ← 文字色（白に近いグレー）
+      --radius-md: 0.5rem;          ← 角丸の大きさ
+  }
+  ──────────────────────────────────────────
+
+  色を変えたい場合、:root の値を変えるだけで全体に反映されます。
+  各所で var(--bg-primary) のように参照します。
+
+■ ダークテーマの設計
+
+  本アプリはダークテーマ（暗い背景、明るい文字）を採用しています。
+  ダークテーマの基本ルール:
+
+  1. 背景は真っ黒(#000)ではなく、少し色味のある暗色(#0f1117)
+  2. 文字は真っ白(#fff)ではなく、少しグレー(#e8eaed)
+  3. カード（情報のまとまり）は背景より少し明るい色で浮かせる
+  4. アクセントカラー（目立つ色）はボタンやリンクにだけ使う
+
+■ レスポンシブデザイン
+
+  style.css の末尾に @media クエリがあります:
+
+  ──────────────────────────────────────────
+  @media (max-width: 768px) {
+      .sidebar {
+          width: 100%;      ← スマホではサイドバーを全幅に
+      }
+  }
+  ──────────────────────────────────────────
+
+  これにより、画面幅に応じてレイアウトが自動調整されます。
+
+■ @font-face（ローカルフォント）
+
+  オフライン対応のため、フォントをローカルファイルとして定義しています:
+
+  ──────────────────────────────────────────
+  @font-face {
+      font-family: 'Inter';
+      font-weight: 400;
+      src: url('../fonts/Inter-Regular.ttf') format('truetype');
+  }
+  ──────────────────────────────────────────
+
+  通常は Google Fonts（外部CDN）から読み込みますが、
+  オフラインでも使えるようにフォントファイルを同梱しました。
+
+
+================================================================================
+第8章  JavaScriptによるインタラクション
+================================================================================
+
+  → 対応ファイル: templates/calendar.html, templates/axis_matrix.html,
+                   templates/es_form.html
+
+■ AJAX（非同期通信）
+
+  ページ全体を再読み込みせずに、データを送受信する技術です。
+  本アプリでは fetch() API を使っています。
+
+  例（axis_matrix.html のスコア保存）:
+
+  ──────────────────────────────────────────
+  fetch('/matrix/save', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({
+          company_id: companyId,
+          axis_id: axisId,
+          score: newScore
+      })
+  });
+  ──────────────────────────────────────────
+
+  ・fetch(URL, オプション) → サーバーにHTTPリクエストを送る
+  ・method: 'POST'         → データを送信するリクエスト
+  ・JSON.stringify(...)    → JavaScriptオブジェクトをJSON文字列に変換
+  ・Content-Type: application/json → 送るデータの形式を宣言
+
+  サーバー側（app.py）では request.get_json() で受け取ります。
+
+■ リアルタイム文字数カウント
+
+  → 対応ファイル: templates/es_form.html
+
+  ES回答フォームにリアルタイム文字数カウントを実装しています:
+
+  ──────────────────────────────────────────
+  document.getElementById('answer').addEventListener('input', function() {
+      const count = this.value.length;
+      document.getElementById('charCount').textContent = count;
+  });
+  ──────────────────────────────────────────
+
+  ・addEventListener('input', ...) → テキスト入力のたびに関数を実行
+  ・this.value.length → 入力された文字の数
+  ・.textContent = count → 画面上の数値を更新
+
+■ FullCalendar.js
+
+  → 対応ファイル: templates/calendar.html, static/vendor/fullcalendar.min.js
+
+  カレンダー機能は「FullCalendar」という外部ライブラリを使っています。
+  281KB のJavaScriptファイル1つで、美しいカレンダーUIが実現できます。
+
+  初期化コード:
+  ──────────────────────────────────────────
+  calendar = new FullCalendar.Calendar(calendarEl, {
+      locale: 'ja',                    ← 日本語化
+      initialView: 'dayGridMonth',     ← 月表示で開始
+      events: '/api/events',           ← イベントデータのAPI URL
+      editable: true,                  ← ドラッグで移動可能
+      selectable: true,                ← 日付をクリックで選択可能
+  });
+  calendar.render();                   ← カレンダーを描画
+  ──────────────────────────────────────────
+
+
+================================================================================
+第9章  設定ファイルの役割（config.py）
+================================================================================
+
+  → 対応ファイル: config.py
+
+  ──────────────────────────────────────────
+  class Config:
+      SECRET_KEY = os.environ.get("SECRET_KEY", "dev-secret-key-...")
+      SQLALCHEMY_DATABASE_URI = f"sqlite:///{os.path.join(BASE_DIR, 'syuukatsu.db')}"
+      SQLALCHEMY_TRACK_MODIFICATIONS = False
+  ──────────────────────────────────────────
+
+  各設定の意味:
+
+  ・SECRET_KEY
+    → フォームのCSRF対策（不正リクエスト防止）に使う秘密鍵。
+      本番環境では環境変数から読み込むが、開発中はデフォルト値を使用。
+
+  ・SQLALCHEMY_DATABASE_URI
+    → データベースの場所を指定。
+      "sqlite:///パス" という形式でSQLiteファイルの場所を指定。
+
+  ・SQLALCHEMY_TRACK_MODIFICATIONS = False
+    → SQLAlchemyの変更追跡機能をOFF（メモリ節約）。
+
+■ PyInstaller対応
+
+  config.py には PyInstaller 用の特別な処理があります:
+
+  ──────────────────────────────────────────
+  def _get_base_dir():
+      if getattr(sys, "frozen", False):        ← exe実行かどうか判定
+          return os.path.dirname(sys.executable)  ← exeのフォルダ
+      return os.path.abspath(os.path.dirname(__file__))  ← 通常
+  ──────────────────────────────────────────
+
+  ・sys.frozen → PyInstallerで固めたexeの場合 True になる特殊な属性
+  ・sys.executable → exeファイル自体のパス
+  ・sys._MEIPASS → PyInstallerが一時展開するリソースのパス
+
+  なぜ分けるかというと、exeの場合:
+  ・テンプレートやCSS → _MEIPASS（exe内部の一時フォルダ）に展開される
+  ・データベース → exeと同じフォルダに保存したい（持ち運び可能にするため）
+
+
+================================================================================
+第10章 ポータブル化（PyInstaller）
+================================================================================
+
+■ PyInstallerとは
+
+  PythonスクリプトをWindowsのexeファイルに変換するツールです。
+  これにより、Pythonがインストールされていないパソコンでもアプリが動きます。
+
+■ ビルドコマンドの解説
+
+  ──────────────────────────────────────────
+  pyinstaller --noconfirm --onedir --name Syu_katsu \
+    --add-data "templates;templates" \
+    --add-data "static;static" \
+    --hidden-import=flask \
+    --hidden-import=flask_sqlalchemy \
+    --collect-submodules flask \
+    app.py
+  ──────────────────────────────────────────
+
+  各オプションの意味:
+
+  ・--noconfirm        → 既存のdistフォルダを確認なしで上書き
+  ・--onedir           → 1つのフォルダにまとめる（--onefileだと1ファイル）
+  ・--name Syu_katsu   → 出力ファイル名
+  ・--add-data "A;B"   → フォルダAをexe内のBとして同梱
+                         （Windowsではセミコロン; Mac/Linuxではコロン:）
+  ・--hidden-import    → PyInstallerが自動検出できないインポートを明示
+  ・--collect-submodules → パッケージの全サブモジュールを含める
+  ・app.py             → エントリーポイント（起動するファイル）
+
+■ ブラウザ自動起動
+
+  exe起動時にブラウザを自動で開く仕組み（app.py の末尾）:
+
+  ──────────────────────────────────────────
+  if is_frozen:
+      def open_browser():
+          webbrowser.open("http://127.0.0.1:5000")
+      threading.Timer(1.5, open_browser).start()
+  ──────────────────────────────────────────
+
+  ・threading.Timer(1.5, ...) → 1.5秒後に実行（サーバー起動を待つため）
+  ・webbrowser.open(...)      → デフォルトブラウザでURLを開く
+
+
+================================================================================
+第11章 オフライン対応
+================================================================================
+
+■ なぜオフライン対応が必要か
+
+  元々、以下の外部リソースをインターネット経由で読み込んでいました:
+
+  1. Google Fonts（Inter, Noto Sans JP）→ フォントが表示されない
+  2. FullCalendar.js（CSS/JS）→ カレンダーが動作しない
+
+  USBで持ち運ぶ場合やネット環境がない場合、これらが使えなくなります。
+
+■ 対応方法
+
+  【フォント】
+  ・Google Fonts からフォントファイル（TTF/OTF）をダウンロード
+  ・static/fonts/ フォルダに保存
+  ・style.css に @font-face ルールを追加
+  ・base.html から Google Fonts の <link> タグを削除
+
+  【FullCalendar.js】
+  ・CDNからJSファイルをダウンロード
+  ・static/vendor/ フォルダに保存
+  ・calendar.html の <script src="https://..."> を
+    <script src="{{ url_for('static', filename='vendor/...') }}"> に変更
+
+■ CDN（Content Delivery Network）とは
+
+  CDNは、世界中のサーバーにファイルを配置して
+  高速にダウンロードできるようにするサービスです。
+  
+  メリット: 高速、キャッシュが効く
+  デメリット: インターネット接続が必要
+
+  本アプリではオフライン動作のため、CDNへの依存を完全に排除しました。
+
+
+================================================================================
+第12章 ドキュメント作成
+================================================================================
+
+  → 対応ファイル: README.md, Syu_katsu_説明書.pdf, generate_manual_pdf.py
+
+■ README.md
+
+  GitHubなどでプロジェクトを公開する際に最初に読まれるファイルです。
+  Markdown形式で書きます。
+
+  良いREADMEの構成:
+  1. プロジェクト名と概要
+  2. 特徴・機能一覧
+  3. セットアップ手順
+  4. 使い方
+  5. プロジェクト構成
+  6. ライセンス
+
+■ PDF生成（generate_manual_pdf.py）
+
+  fpdf2 ライブラリを使い、PythonコードでPDFを生成しました。
+  
+  日本語をPDFで使うには「日本語対応フォント」が必要です。
+  本スクリプトでは Noto Sans CJK JP を使用しています。
+
+  ──────────────────────────────────────────
+  from fpdf import FPDF
+  
+  pdf = FPDF()
+  pdf.add_font("NotoSansJP", "", "font.ttf", uni=True)
+  pdf.add_page()
+  pdf.set_font("NotoSansJP", "", 12)
+  pdf.cell(0, 10, "こんにちは")
+  pdf.output("output.pdf")
+  ──────────────────────────────────────────
+
+
+================================================================================
+第13章 開発で学んだ重要な概念まとめ
+================================================================================
+
+■ MVC（Model-View-Controller）パターン
+
+  Webアプリの設計で最も基本的なパターンです:
+
+    Model      → データ構造とデータベース操作（models.py）
+    View       → 画面表示（templates/*.html）
+    Controller → リクエスト処理とビジネスロジック（app.py のルート関数）
+
+  この分離により、デザインの変更がデータ処理に影響しない、
+  データベースの変更が画面に影響しない、という設計が実現できます。
+
+■ DRY原則（Don't Repeat Yourself）
+
+  「同じコードを2回書かない」という原則です。
+  本アプリでの実践例:
+  
+  ・テンプレート継承（base.htmlにサイドバーを1箇所だけ定義）
+  ・CSS変数（色を:rootに1箇所だけ定義）
+  ・ヘルパー関数（_parse_datetime をCRUD間で共有）
+
+■ プログレッシブエンハンスメント
+
+  まず基本機能を動かし、段階的に機能を追加するアプローチです:
+
+    フェーズ1: ダッシュボード＋企業管理（MVP）
+    フェーズ2: カレンダー＋就活軸
+    フェーズ3: ES管理＋志望動機＋自己分析
+    フェーズ4: マトリックス＋ES締切ウィジェット
+    フェーズ5: オフライン対応＋ポータブル化
+
+■ この開発で使った主要なデザインパターン
+
+  1. ファクトリパターン（create_app関数）
+  2. テンプレートメソッドパターン（base.htmlの{% block %}）
+  3. MVCパターン（model/view/controller の分離）
+  4. AJAXパターン（マトリックスの即時保存）
+
+■ 学習の次のステップ
+
+  本アプリの開発を通じて基礎を学んだ後、以下に進むことをお勧めします:
+
+  1. Flask公式チュートリアル（Flaskr ブログアプリ）
+     https://flask.palletsprojects.com/en/stable/tutorial/
+
+  2. SQLの基礎（SQLAlchemyが内部で何をしているか理解する）
+
+  3. Git/GitHub（ソースコードのバージョン管理）
+
+  4. テスト（pytest でアプリの自動テストを書く）
+
+  5. デプロイ（Render, Railway等でインターネット公開）
+
+
+================================================================================
+付録A: 用語集
+================================================================================
+
+  API（Application Programming Interface）
+    → プログラム同士がデータをやり取りする窓口。
+      本アプリでは /api/events がカレンダーデータのAPIです。
+
+  Blueprint（ブループリント）
+    → Flaskでルートをグループ化する仕組み。大規模アプリの整理に使う。
+
+  CDN（Content Delivery Network）
+    → 世界中のサーバーから高速にファイルを配信するサービス。
+
+  CRUD（Create/Read/Update/Delete）
+    → データ操作の基本4パターン。
+
+  CSRF（Cross-Site Request Forgery）
+    → 悪意あるサイトからユーザーのブラウザを使って
+      不正リクエストを送る攻撃。SECRET_KEYで防止する。
+
+  ORM（Object-Relational Mapping）
+    → データベーステーブルとPythonクラスを対応付ける技術。
+
+  SQLite
+    → ファイル1つで動く軽量データベース。サーバー不要。
+
+  仮想環境（venv）
+    → プロジェクトごとにPythonライブラリを分離する仕組み。
+
+  デコレータ（@で始まる記述）
+    → 関数に追加機能を持たせるPythonの構文。
+      @main_bp.route("/") は「この関数をURLに紐付ける」意味。
+
+  テンプレートエンジン
+    → HTMLの中にプログラムの変数を埋め込む仕組み。
+      Flaskでは Jinja2 が標準。
+
+  マイグレーション
+    → データベースの構造変更を管理する仕組み。
+      本アプリでは db.create_all() で簡易的に実現。
+
+  リファクタリング
+    → 動作を変えずにコードを整理・改善すること。
+      Blueprint化やCSS変数の導入がこれにあたる。
+
+  レスポンシブデザイン
+    → 画面サイズに応じてレイアウトが自動調整されるデザイン。
+      @media クエリで実現する。
+
+
+================================================================================
+付録B: よくあるエラーと対処法
+================================================================================
+
+  エラー: ModuleNotFoundError: No module named 'flask'
+  原因:  仮想環境が有効化されていない
+  対処:  .\venv\Scripts\activate を実行してから python app.py
+
+  エラー: jinja2.exceptions.TemplateNotFound
+  原因:  テンプレートファイル名のスペルミス、またはtemplates/フォルダにない
+  対処:  ファイル名と render_template() の引数を確認
+
+  エラー: sqlalchemy.exc.OperationalError: no such table
+  原因:  テーブルが作成されていない
+  対処:  db.create_all() が実行されているか確認。
+         syuukatsu.db を削除して再起動すれば自動再作成される。
+
+  エラー: OSError: [Errno 98] Address already in use
+  原因:  ポート5000が他のプロセスに使われている
+  対処:  既に起動しているFlaskを停止するか、port=5001 に変更
+
+  エラー: 404 Not Found
+  原因:  指定したURLに対応するルートが定義されていない
+  対処:  app.py の @main_bp.route() とURLが一致しているか確認
+
+================================================================================
+
+  以上で本テキストは終了です。
+  
+  このアプリのソースコードを読みながら本テキストを進めることで、
+  Webアプリケーション開発の基礎を実践的に学ぶことができます。
+  
+  不明な点があれば、各章の「→ 対応ファイル」を開いて
+  実際のコードと照らし合わせてみてください。
+
+================================================================================

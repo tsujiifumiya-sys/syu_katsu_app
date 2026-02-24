@@ -1,0 +1,91 @@
+{% extends "base.html" %}
+{% block title %}{% if es %}ES編集{% else %}ES追加{% endif %}{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <a href="{{ url_for('main.es_list') }}" class="back-link">← ES一覧</a>
+    <h1>{% if es %}ESを編集{% else %}新しいESを追加{% endif %}</h1>
+</div>
+
+<form method="POST" class="form-card" id="esForm">
+    <div class="form-grid">
+        <div class="form-group">
+            <label for="company_id">企業 <span class="required">*</span></label>
+            <select name="company_id" id="company_id" class="form-control" required>
+                <option value="">選択してください</option>
+                {% for c in companies %}
+                <option value="{{ c.id }}" {% if es and es.company_id==c.id %}selected{% endif %}>{{ c.name }}</option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <div class="form-group">
+            <label for="status">ステータス</label>
+            <select name="status" id="status" class="form-control">
+                {% for st in es_statuses %}
+                <option value="{{ st }}" {% if es and es.status==st %}selected{% endif %}>{{ st }}</option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <div class="form-group">
+            <label for="char_limit">文字数制限</label>
+            <input type="number" name="char_limit" id="char_limit" class="form-control"
+                value="{{ es.char_limit or '' if es else '' }}" min="0" placeholder="例: 400">
+        </div>
+
+        <div class="form-group">
+            <label for="deadline">締切日</label>
+            <input type="date" name="deadline" id="deadline" class="form-control"
+                value="{{ es.deadline.strftime('%Y-%m-%d') if es and es.deadline else '' }}">
+        </div>
+    </div>
+
+    <div class="form-group" style="margin-top: 1rem;">
+        <label for="question">設問 <span class="required">*</span></label>
+        <textarea name="question" id="question" class="form-control" rows="3" required
+            placeholder="例: 学生時代に最も力を入れたことは何ですか？">{{ es.question if es else '' }}</textarea>
+    </div>
+
+    <div class="form-group">
+        <label for="answer">
+            回答
+            <span class="char-counter" id="charCounter"></span>
+        </label>
+        <textarea name="answer" id="answer" class="form-control textarea-large" rows="10"
+            placeholder="ここに回答を入力…">{{ es.answer if es else '' }}</textarea>
+    </div>
+
+    <div class="form-actions">
+        <button type="submit" class="btn btn-primary">{% if es %}更新する{% else %}追加する{% endif %}</button>
+        <a href="{{ url_for('main.es_list') }}" class="btn btn-ghost">キャンセル</a>
+    </div>
+</form>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const answer = document.getElementById('answer');
+        const charLimit = document.getElementById('char_limit');
+        const counter = document.getElementById('charCounter');
+
+        function updateCounter() {
+            const len = answer.value.length;
+            const limit = parseInt(charLimit.value) || 0;
+            if (limit > 0) {
+                counter.textContent = `${len} / ${limit} 字`;
+                counter.className = len > limit ? 'char-counter over-limit' : 'char-counter';
+            } else {
+                counter.textContent = `${len} 字`;
+                counter.className = 'char-counter';
+            }
+        }
+
+        answer.addEventListener('input', updateCounter);
+        charLimit.addEventListener('input', updateCounter);
+        updateCounter();
+    });
+</script>
+{% endblock %}

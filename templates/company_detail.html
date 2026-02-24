@@ -1,0 +1,169 @@
+{% extends "base.html" %}
+{% block title %}{{ company.name }}{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <a href="{{ url_for('main.company_list') }}" class="back-link">← 企業一覧</a>
+    <div class="page-header-actions">
+        <h1>{{ company.name }}</h1>
+        <div class="header-buttons">
+            <a href="{{ url_for('main.company_edit', company_id=company.id) }}" class="btn btn-ghost">✏️ 編集</a>
+            <form method="POST" action="{{ url_for('main.company_delete', company_id=company.id) }}" class="inline-form"
+                onsubmit="return confirm('本当に削除しますか？')">
+                <button type="submit" class="btn btn-danger-ghost">🗑️ 削除</button>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- 企業情報カード -->
+<div class="detail-grid">
+    <div class="detail-card">
+        <h3>基本情報</h3>
+        <div class="detail-rows">
+            <div class="detail-row">
+                <span class="detail-label">業界</span>
+                <span class="detail-value">{{ company.industry or '—' }}</span>
+            </div>
+            <div class="detail-row">
+                <span class="detail-label">職種</span>
+                <span class="detail-value">{{ company.job_type or '—' }}</span>
+            </div>
+            <div class="detail-row">
+                <span class="detail-label">志望度</span>
+                <span class="detail-value preference-stars">{{ '★' * company.preference }}{{ '☆' * (5 -
+                    company.preference) }}</span>
+            </div>
+            <div class="detail-row">
+                <span class="detail-label">ステータス</span>
+                <span class="detail-value"><span class="status-badge">{{ company.status_label }}</span></span>
+            </div>
+        </div>
+        {% if company.description %}
+        <div class="detail-description">
+            <h4>事業内容・メモ</h4>
+            <p>{{ company.description }}</p>
+        </div>
+        {% endif %}
+    </div>
+
+    {% if company.mypage_url or company.mypage_id %}
+    <div class="detail-card">
+        <h3>マイページ</h3>
+        <div class="detail-rows">
+            {% if company.mypage_url %}
+            <div class="detail-row">
+                <span class="detail-label">URL</span>
+                <a href="{{ company.mypage_url }}" target="_blank" class="detail-value link">{{ company.mypage_url |
+                    truncate(40) }}</a>
+            </div>
+            {% endif %}
+            {% if company.mypage_id %}
+            <div class="detail-row">
+                <span class="detail-label">ID</span>
+                <span class="detail-value copy-text" data-copy="{{ company.mypage_id }}">{{ company.mypage_id }} <button
+                        class="copy-btn" title="コピー">📋</button></span>
+            </div>
+            {% endif %}
+            {% if company.mypage_password %}
+            <div class="detail-row">
+                <span class="detail-label">パスワード</span>
+                <span class="detail-value">
+                    <span class="password-mask" id="pwMask">••••••••</span>
+                    <span class="password-text" id="pwText" style="display:none;">{{ company.mypage_password }}</span>
+                    <button class="copy-btn" onclick="togglePw()" title="表示/非表示">👁️</button>
+                </span>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+<!-- 選考タイムライン -->
+<div class="section-header" style="margin-top: 2rem;">
+    <h2>選考タイムライン</h2>
+</div>
+
+{% if company.selections %}
+<div class="timeline">
+    {% for sel in company.selections | sort(attribute='scheduled_at') %}
+    <div class="timeline-item status-{{ sel.status }}">
+        <div class="timeline-marker"></div>
+        <div class="timeline-content">
+            <div class="timeline-header">
+                <span class="timeline-stage">{{ sel.stage }}</span>
+                <span class="status-badge status-sm">{{ sel.status }}</span>
+            </div>
+            {% if sel.scheduled_at %}
+            <span class="timeline-date">{{ sel.scheduled_at.strftime('%Y/%m/%d %H:%M') }}</span>
+            {% endif %}
+            {% if sel.location %}
+            <span class="timeline-location">📍 {{ sel.location }}</span>
+            {% endif %}
+            {% if sel.feedback %}
+            <p class="timeline-feedback">{{ sel.feedback }}</p>
+            {% endif %}
+            <form method="POST" action="{{ url_for('main.selection_update', sel_id=sel.id) }}"
+                class="inline-form timeline-update">
+                <select name="status" class="select-sm">
+                    {% for st in statuses %}
+                    <option value="{{ st }}" {% if sel.status==st %}selected{% endif %}>{{ st }}</option>
+                    {% endfor %}
+                </select>
+                <button type="submit" class="btn btn-sm btn-ghost">更新</button>
+            </form>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% endif %}
+
+<!-- 選考追加フォーム -->
+<div class="add-section">
+    <h3>選考を追加</h3>
+    <form method="POST" action="{{ url_for('main.selection_new', company_id=company.id) }}" class="form-inline">
+        <select name="stage" class="form-control">
+            {% for stage in stages %}
+            <option value="{{ stage }}">{{ stage }}</option>
+            {% endfor %}
+        </select>
+        <select name="status" class="form-control">
+            {% for st in statuses %}
+            <option value="{{ st }}">{{ st }}</option>
+            {% endfor %}
+        </select>
+        <input type="datetime-local" name="scheduled_at" class="form-control">
+        <input type="text" name="location" class="form-control" placeholder="場所・URL">
+        <button type="submit" class="btn btn-primary">追加</button>
+    </form>
+</div>
+
+{% if company.notes %}
+<div class="section-header" style="margin-top: 2rem;">
+    <h2>メモ</h2>
+</div>
+<div class="notes-content">
+    <p>{{ company.notes }}</p>
+</div>
+{% endif %}
+
+<script>
+    function togglePw() {
+        const mask = document.getElementById('pwMask');
+        const text = document.getElementById('pwText');
+        if (mask.style.display === 'none') {
+            mask.style.display = 'inline';
+            text.style.display = 'none';
+        } else {
+            mask.style.display = 'none';
+            text.style.display = 'inline';
+        }
+    }
+    document.querySelectorAll('.copy-text').forEach(el => {
+        el.querySelector('.copy-btn')?.addEventListener('click', () => {
+            navigator.clipboard.writeText(el.dataset.copy);
+        });
+    });
+</script>
+{% endblock %}

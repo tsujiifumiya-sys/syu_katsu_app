@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+{% block title %}企業一覧{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1>企業管理</h1>
+    <a href="{{ url_for('main.company_new') }}" class="btn btn-primary">+ 新規追加</a>
+</div>
+
+{% if companies %}
+<div class="company-grid">
+    {% for c in companies %}
+    <a href="{{ url_for('main.company_detail', company_id=c.id) }}" class="company-card">
+        <div class="company-card-header">
+            <span class="company-name">{{ c.name }}</span>
+            <span class="preference-stars">{{ '★' * c.preference }}{{ '☆' * (5 - c.preference) }}</span>
+        </div>
+        <div class="company-card-body">
+            {% if c.industry %}<span class="tag">{{ c.industry }}</span>{% endif %}
+            {% if c.job_type %}<span class="tag tag-outline">{{ c.job_type }}</span>{% endif %}
+        </div>
+        <div class="company-card-footer">
+            <span class="status-badge status-{{ c.status_label | replace(' ', '-') }}">{{ c.status_label }}</span>
+            <span class="selection-count">選考 {{ c.selections | length }}件</span>
+        </div>
+    </a>
+    {% endfor %}
+</div>
+{% else %}
+<div class="empty-state">
+    <span class="empty-icon">🏢</span>
+    <p>まだ企業が登録されていません</p>
+    <a href="{{ url_for('main.company_new') }}" class="btn btn-primary">最初の企業を追加</a>
+</div>
+{% endif %}
+{% endblock %}

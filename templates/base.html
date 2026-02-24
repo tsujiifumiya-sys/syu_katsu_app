@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}就活管理{% endblock %} | Syu_katsu</title>
+    <meta name="description" content="就職活動の選考状況・志望動機・スケジュールを一括管理するアプリ">
+    <!-- フォントはローカル同梱（オフライン対応） -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    {% block head_extra %}{% endblock %}
+</head>
+
+<body>
+    <nav class="sidebar" id="sidebar">
+        <div class="sidebar-header">
+            <div class="logo">
+                <span class="logo-icon">📋</span>
+                <span class="logo-text">Syu_katsu</span>
+            </div>
+        </div>
+        <ul class="nav-links">
+            <li><a href="{{ url_for('main.dashboard') }}"
+                    class="nav-link {% if request.endpoint == 'main.dashboard' %}active{% endif %}">
+                    <span class="nav-icon">🏠</span><span class="nav-label">ダッシュボード</span>
+                </a></li>
+            <li><a href="{{ url_for('main.company_list') }}"
+                    class="nav-link {% if 'company' in request.endpoint %}active{% endif %}">
+                    <span class="nav-icon">🏢</span><span class="nav-label">企業管理</span>
+                </a></li>
+            <li><a href="{{ url_for('main.calendar_view') }}"
+                    class="nav-link {% if request.endpoint == 'main.calendar_view' %}active{% endif %}">
+                    <span class="nav-icon">📅</span><span class="nav-label">カレンダー</span>
+                </a></li>
+            <li><a href="{{ url_for('main.axes_list') }}"
+                    class="nav-link {% if 'axis' in (request.endpoint or '') or 'axes' in (request.endpoint or '') %}active{% endif %}">
+                    <span class="nav-icon">🎯</span><span class="nav-label">就活軸</span>
+                </a></li>
+            <li><a href="{{ url_for('main.axis_matrix') }}"
+                    class="nav-link {% if 'matrix' in (request.endpoint or '') %}active{% endif %}">
+                    <span class="nav-icon">📊</span><span class="nav-label">軸マトリックス</span>
+                </a></li>
+            <li><a href="{{ url_for('main.es_list') }}"
+                    class="nav-link {% if 'es_' in (request.endpoint or '') %}active{% endif %}">
+                    <span class="nav-icon">📝</span><span class="nav-label">ES管理</span>
+                </a></li>
+            <li><a href="{{ url_for('main.motivation_list') }}"
+                    class="nav-link {% if 'motivation' in (request.endpoint or '') %}active{% endif %}">
+                    <span class="nav-icon">💌</span><span class="nav-label">志望動機</span>
+                </a></li>
+            <li><a href="{{ url_for('main.self_analysis_list') }}"
+                    class="nav-link {% if 'self_analysis' in (request.endpoint or '') %}active{% endif %}">
+                    <span class="nav-icon">🔍</span><span class="nav-label">自己分析</span>
+                </a></li>
+        </ul>
+        <div class="sidebar-footer">
+            <div class="user-info">
+                <span class="user-avatar">👤</span>
+                <span class="user-name">{{ user.name if user else 'ユーザー' }}</span>
+            </div>
+        </div>
+    </nav>
+
+    <button class="sidebar-toggle" id="sidebarToggle" aria-label="メニュー切替">☰</button>
+
+    <main class="main-content" id="mainContent">
+        {% block content %}{% endblock %}
+    </main>
+
+    <script>
+        // サイドバー開閉
+        const sidebar = document.getElementById('sidebar');
+        const toggle = document.getElementById('sidebarToggle');
+        const main = document.getElementById('mainContent');
+        toggle.addEventListener('click', () => {
+            sidebar.classList.toggle('collapsed');
+            main.classList.toggle('expanded');
+        });
+    </script>
+    {% block scripts %}{% endblock %}
+</body>
+
+</html>

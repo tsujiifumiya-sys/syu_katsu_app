@@ -1,0 +1,115 @@
+{% extends "base.html" %}
+{% block title %}企業×就活軸マトリックス{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1>📊 企業×就活軸マトリックス</h1>
+    <p class="subtitle">各企業が就活軸にどれだけ合致するかスコア(1〜5)で評価</p>
+</div>
+
+{% if companies and axes %}
+<div class="matrix-wrapper">
+    <table class="matrix-table">
+        <thead>
+            <tr>
+                <th class="matrix-company-header">企業</th>
+                {% for axis in axes %}
+                <th class="matrix-axis-header">
+                    <span class="axis-name">{{ axis.name }}</span>
+                    <span class="axis-priority">P{{ axis.priority }}</span>
+                </th>
+                {% endfor %}
+                <th class="matrix-total-header">合計</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for company in companies %}
+            <tr data-company-id="{{ company.id }}">
+                <td class="matrix-company-name">
+                    <a href="{{ url_for('main.company_detail', company_id=company.id) }}">
+                        {{ company.name }}
+                    </a>
+                    <span class="preference-stars">{{ '★' * company.preference }}{{ '☆' * (5 - company.preference)
+                        }}</span>
+                </td>
+                {% set row_total = [] %}
+                {% for axis in axes %}
+                {% set current_score = scores.get((company.id, axis.id), 0) %}
+                {% if row_total.append(current_score) %}{% endif %}
+                <td class="matrix-cell" data-axis-id="{{ axis.id }}">
+                    <div class="score-selector" data-current="{{ current_score }}">
+                        {% for s in range(1, 6) %}
+                        <button class="score-dot {% if s <= current_score %}active{% endif %} score-level-{{ s }}"
+                            data-score="{{ s }}" title="{{ s }}">●</button>
+                        {% endfor %}
+                    </div>
+                </td>
+                {% endfor %}
+                <td class="matrix-total">
+                    <span class="total-value">{{ row_total | sum }}</span>
+                    <span class="total-max">/ {{ axes | length * 5 }}</span>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% elif not companies %}
+<div class="empty-state">
+    <span class="empty-icon">🏢</span>
+    <p>まず企業を追加してください</p>
+    <a href="{{ url_for('main.company_new') }}" class="btn btn-primary">企業を追加</a>
+</div>
+{% elif not axes %}
+<div class="empty-state">
+    <span class="empty-icon">🎯</span>
+    <p>まず就活軸を定義してください</p>
+    <a href="{{ url_for('main.axes_list') }}" class="btn btn-primary">就活軸を追加</a>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block scripts %}
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        document.querySelectorAll('.score-dot').forEach(dot => {
+            dot.addEventListener('click', function () {
+                const cell = this.closest('.matrix-cell');
+                const row = this.closest('tr');
+                const selector = this.closest('.score-selector');
+                const companyId = row.dataset.companyId;
+                const axisId = cell.dataset.axisId;
+                const clickedScore = parseInt(this.dataset.score);
+                const currentScore = parseInt(selector.dataset.current);
+
+                // 同じスコアクリックでリセット
+                const newScore = (clickedScore === currentScore) ? 0 : clickedScore;
+
+                // UI即時更新
+                selector.dataset.current = newScore;
+                selector.querySelectorAll('.score-dot').forEach((d, i) => {
+                    d.classList.toggle('active', (i + 1) <= newScore);
+                });
+
+                // 合計を再計算
+                let total = 0;
+                row.querySelectorAll('.score-selector').forEach(sel => {
+                    total += parseInt(sel.dataset.current) || 0;
+                });
+                row.querySelector('.total-value').textContent = total;
+
+                // サーバーに保存
+                fetch('{{ url_for("main.axis_matrix_save") }}', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        company_id: companyId,
+                        axis_id: axisId,
+                        score: newScore
+                    })
+                });
+            });
+        });
+    });
+</script>
+{% endblock %}

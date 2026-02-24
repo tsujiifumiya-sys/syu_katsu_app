@@ -1,0 +1,95 @@
+{% extends "base.html" %}
+{% block title %}{% if company %}{{ company.name }} を編集{% else %}企業を追加{% endif %}{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <a href="{% if company %}{{ url_for('main.company_detail', company_id=company.id) }}{% else %}{{ url_for('main.company_list') }}{% endif %}"
+        class="back-link">← 戻る</a>
+    <h1>{% if company %}{{ company.name }} を編集{% else %}新しい企業を追加{% endif %}</h1>
+</div>
+
+<form method="POST" class="form-card">
+    <div class="form-grid">
+        <div class="form-group">
+            <label for="name">企業名 <span class="required">*</span></label>
+            <input type="text" id="name" name="name" value="{{ company.name if company else '' }}" required
+                placeholder="例: 株式会社テック">
+        </div>
+        <div class="form-group">
+            <label for="industry">業界</label>
+            <input type="text" id="industry" name="industry" value="{{ company.industry if company else '' }}"
+                placeholder="例: IT・通信">
+        </div>
+        <div class="form-group">
+            <label for="job_type">職種</label>
+            <input type="text" id="job_type" name="job_type" value="{{ company.job_type if company else '' }}"
+                placeholder="例: ソフトウェアエンジニア">
+        </div>
+        <div class="form-group">
+            <label for="preference">志望度</label>
+            <div class="star-rating" id="starRating">
+                {% for i in range(1, 6) %}
+                <button type="button"
+                    class="star-btn {% if company and company.preference >= i %}active{% elif not company and 3 >= i %}active{% endif %}"
+                    data-value="{{ i }}">★</button>
+                {% endfor %}
+                <input type="hidden" id="preference" name="preference"
+                    value="{{ company.preference if company else 3 }}">
+            </div>
+        </div>
+    </div>
+
+    <div class="form-group">
+        <label for="description">事業内容・メモ</label>
+        <textarea id="description" name="description" rows="3"
+            placeholder="事業内容や特徴をメモ">{{ company.description if company else '' }}</textarea>
+    </div>
+
+    <div class="form-divider">
+        <span>マイページ情報</span>
+    </div>
+
+    <div class="form-grid form-grid-3">
+        <div class="form-group">
+            <label for="mypage_url">マイページ URL</label>
+            <input type="url" id="mypage_url" name="mypage_url" value="{{ company.mypage_url if company else '' }}"
+                placeholder="https://...">
+        </div>
+        <div class="form-group">
+            <label for="mypage_id">ID</label>
+            <input type="text" id="mypage_id" name="mypage_id" value="{{ company.mypage_id if company else '' }}">
+        </div>
+        <div class="form-group">
+            <label for="mypage_password">パスワード</label>
+            <input type="password" id="mypage_password" name="mypage_password"
+                value="{{ company.mypage_password if company else '' }}">
+        </div>
+    </div>
+
+    <div class="form-group">
+        <label for="notes">自由メモ</label>
+        <textarea id="notes" name="notes" rows="3"
+            placeholder="その他のメモ">{{ company.notes if company else '' }}</textarea>
+    </div>
+
+    <div class="form-actions">
+        <button type="submit" class="btn btn-primary">{% if company %}更新する{% else %}追加する{% endif %}</button>
+        <a href="{{ url_for('main.company_list') }}" class="btn btn-ghost">キャンセル</a>
+    </div>
+</form>
+
+<script>
+    // 星評価
+    const stars = document.querySelectorAll('.star-btn');
+    const hidden = document.getElementById('preference');
+    stars.forEach(star => {
+        star.addEventListener('click', () => {
+            const val = parseInt(star.dataset.value);
+            hidden.value = val;
+            stars.forEach(s => {
+                s.classList.toggle('active', parseInt(s.dataset.value) <= val);
+            });
+        });
+    });
+</script>
+{% endblock %}

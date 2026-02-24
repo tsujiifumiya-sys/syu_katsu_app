@@ -1,0 +1,67 @@
+{% extends "base.html" %}
+{% block title %}ES管理{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1>📝 エントリーシート管理</h1>
+    <a href="{{ url_for('main.es_new') }}" class="btn btn-primary">+ 新規追加</a>
+</div>
+
+{% if entry_sheets %}
+<div class="es-table-wrapper">
+    <table class="data-table">
+        <thead>
+            <tr>
+                <th>企業</th>
+                <th>設問</th>
+                <th>ステータス</th>
+                <th>文字数</th>
+                <th>締切</th>
+                <th>操作</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for es in entry_sheets %}
+            <tr
+                class="{% if es.deadline and es.status == '下書き' %}{% set diff = (es.deadline - today).days if today else 999 %}{% if diff <= 3 %}deadline-urgent{% elif diff <= 7 %}deadline-soon{% endif %}{% endif %}">
+                <td><span class="tag">{{ es.company.name }}</span></td>
+                <td class="es-question">{{ es.question[:80] }}{% if es.question|length > 80 %}…{% endif %}</td>
+                <td>
+                    <span class="status-badge status-{{ es.status }}">{{ es.status }}</span>
+                </td>
+                <td>
+                    {% if es.char_limit %}
+                    <span class="char-count {% if es.answer|length > es.char_limit %}over-limit{% endif %}">
+                        {{ es.answer|length }} / {{ es.char_limit }}
+                    </span>
+                    {% else %}
+                    <span class="char-count">{{ es.answer|length }} 字</span>
+                    {% endif %}
+                </td>
+                <td>
+                    {% if es.deadline %}
+                    {{ es.deadline.strftime('%m/%d') }}
+                    {% else %}
+                    <span class="text-muted">—</span>
+                    {% endif %}
+                </td>
+                <td class="actions">
+                    <a href="{{ url_for('main.es_edit', es_id=es.id) }}" class="btn btn-sm btn-ghost">✏️</a>
+                    <form method="POST" action="{{ url_for('main.es_delete', es_id=es.id) }}" class="inline-form"
+                        onsubmit="return confirm('削除しますか？')">
+                        <button type="submit" class="btn btn-sm btn-danger-ghost">🗑️</button>
+                    </form>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% else %}
+<div class="empty-state">
+    <span class="empty-icon">📝</span>
+    <p>まだESが登録されていません</p>
+    <a href="{{ url_for('main.es_new') }}" class="btn btn-primary">最初のESを追加</a>
+</div>
+{% endif %}
+{% endblock %}
