@@ -152,12 +152,18 @@ def company_new():
 def company_detail(company_id):
     company = Company.query.get_or_404(company_id)
     axes = JobAxis.query.filter_by(user_id=company.user_id).all()
+    # scheduled_at が None でもソートできるよう、Noneを最後に配置
+    selections_sorted = sorted(
+        company.selections,
+        key=lambda s: s.scheduled_at or datetime.max.replace(tzinfo=timezone.utc),
+    )
     return render_template(
         "company_detail.html",
         company=company,
         axes=axes,
         stages=SELECTION_STAGES,
         statuses=SELECTION_STATUSES,
+        selections_sorted=selections_sorted,
     )
 
 

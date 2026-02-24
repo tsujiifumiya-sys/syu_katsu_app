@@ -87,7 +87,7 @@
 
 {% if company.selections %}
 <div class="timeline">
-    {% for sel in company.selections | sort(attribute='scheduled_at') %}
+    {% for sel in selections_sorted %}
     <div class="timeline-item status-{{ sel.status }}">
         <div class="timeline-marker"></div>
         <div class="timeline-content">
