@@ -80,62 +80,89 @@
     {% endif %}
 </div>
 
-<!-- 選考タイムライン -->
+<!-- 選考一覧 -->
 <div class="section-header" style="margin-top: 2rem;">
-    <h2>選考タイムライン</h2>
+    <h2>選考状況</h2>
 </div>
 
 {% if company.selections %}
-<div class="timeline">
+<div class="selection-list">
     {% for sel in selections_sorted %}
-    <div class="timeline-item status-{{ sel.status }}">
-        <div class="timeline-marker"></div>
-        <div class="timeline-content">
-            <div class="timeline-header">
-                <span class="timeline-stage">{{ sel.stage }}</span>
-                <span class="status-badge status-sm">{{ sel.status }}</span>
+    <div class="selection-card">
+        <form method="POST" action="{{ url_for('main.selection_update', sel_id=sel.id) }}" class="selection-edit-form">
+            <div class="selection-row">
+                <div class="selection-field">
+                    <label>段階</label>
+                    <select name="stage" class="form-control">
+                        {% for stage in stages %}
+                        <option value="{{ stage }}" {% if sel.stage==stage %}selected{% endif %}>{{ stage }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="selection-field">
+                    <label>ステータス</label>
+                    <select name="status" class="form-control">
+                        {% for st in statuses %}
+                        <option value="{{ st }}" {% if sel.status==st %}selected{% endif %}>{{ st }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="selection-field">
+                    <label>日時</label>
+                    <input type="datetime-local" name="scheduled_at" class="form-control"
+                        value="{{ sel.scheduled_at.strftime('%Y-%m-%dT%H:%M') if sel.scheduled_at else '' }}">
+                </div>
             </div>
-            {% if sel.scheduled_at %}
-            <span class="timeline-date">{{ sel.scheduled_at.strftime('%Y/%m/%d %H:%M') }}</span>
-            {% endif %}
-            {% if sel.location %}
-            <span class="timeline-location">📍 {{ sel.location }}</span>
-            {% endif %}
-            {% if sel.feedback %}
-            <p class="timeline-feedback">{{ sel.feedback }}</p>
-            {% endif %}
-            <form method="POST" action="{{ url_for('main.selection_update', sel_id=sel.id) }}"
-                class="inline-form timeline-update">
-                <select name="status" class="select-sm">
-                    {% for st in statuses %}
-                    <option value="{{ st }}" {% if sel.status==st %}selected{% endif %}>{{ st }}</option>
-                    {% endfor %}
-                </select>
-                <button type="submit" class="btn btn-sm btn-ghost">更新</button>
-            </form>
-        </div>
+            <div class="selection-row">
+                <div class="selection-field" style="flex: 2;">
+                    <label>場所・URL</label>
+                    <input type="text" name="location" class="form-control" value="{{ sel.location or '' }}"
+                        placeholder="場所・URL">
+                </div>
+                <div class="selection-actions">
+                    <button type="submit" class="btn btn-sm btn-ghost">💾 保存</button>
+                    <a href="{{ url_for('main.selection_delete', sel_id=sel.id) }}" class="btn btn-sm btn-danger-ghost"
+                        onclick="return confirm('この選考を削除しますか？')">🗑️</a>
+                </div>
+            </div>
+        </form>
     </div>
     {% endfor %}
+</div>
+{% else %}
+<div class="empty-state">
+    <span class="empty-icon">📋</span>
+    <p>まだ選考が登録されていません</p>
 </div>
 {% endif %}
 
 <!-- 選考追加フォーム -->
 <div class="add-section">
     <h3>選考を追加</h3>
-    <form method="POST" action="{{ url_for('main.selection_new', company_id=company.id) }}" class="form-inline">
-        <select name="stage" class="form-control">
-            {% for stage in stages %}
-            <option value="{{ stage }}">{{ stage }}</option>
-            {% endfor %}
-        </select>
-        <select name="status" class="form-control">
-            {% for st in statuses %}
-            <option value="{{ st }}">{{ st }}</option>
-            {% endfor %}
-        </select>
-        <input type="datetime-local" name="scheduled_at" class="form-control">
-        <input type="text" name="location" class="form-control" placeholder="場所・URL">
-        <button type="submit" class="btn btn-primary">追加</button>
+    <form method="POST" action="{{ url_for('main.selection_new', company_id=company.id) }}" class="selection-edit-form">
+        <div class="selection-row">
+            <div class="selection-field">
+                <select name="stage" class="form-control">
+                    {% for stage in stages %}
+                    <option value="{{ stage }}">{{ stage }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="selection-field">
+                <select name="status" class="form-control">
+                    {% for st in statuses %}
+                    <option value="{{ st }}">{{ st }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="selection-field">
+                <input type="datetime-local" name="scheduled_at" class="form-control">
+            </div>
+            <div class="selection-field">
+                <input type="text" name="location" class="form-control" placeholder="場所・URL">
+            </div>
+            <button type="submit" class="btn btn-primary">追加</button>
+        </div>
     </form>
 </div>
 

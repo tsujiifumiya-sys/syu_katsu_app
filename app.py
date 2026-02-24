@@ -215,10 +215,22 @@ def selection_new(company_id):
 @main_bp.route("/selections/<int:sel_id>/update", methods=["POST"])
 def selection_update(sel_id):
     sel = Selection.query.get_or_404(sel_id)
+    sel.stage = request.form.get("stage", sel.stage)
     sel.status = request.form.get("status", sel.status)
+    sel.scheduled_at = _parse_datetime(request.form.get("scheduled_at")) or sel.scheduled_at
+    sel.location = request.form.get("location", sel.location)
     sel.feedback = request.form.get("feedback", sel.feedback)
     db.session.commit()
     return redirect(url_for("main.company_detail", company_id=sel.company_id))
+
+
+@main_bp.route("/selections/<int:sel_id>/delete")
+def selection_delete(sel_id):
+    sel = Selection.query.get_or_404(sel_id)
+    cid = sel.company_id
+    db.session.delete(sel)
+    db.session.commit()
+    return redirect(url_for("main.company_detail", company_id=cid))
 
 
 # ------------------------------------------------------------------
