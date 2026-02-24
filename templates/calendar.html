@@ -89,7 +89,7 @@
                 center: 'title',
                 right: 'dayGridMonth,timeGridWeek,timeGridDay'
             },
-            events: '/api/events',
+            events: { url: '/api/events', extraParams: {}, method: 'GET', credentials: 'same-origin' },
             editable: true,
             selectable: true,
             height: 'auto',
@@ -102,6 +102,7 @@
             eventDrop: function (info) {
                 fetch(`/api/events/${info.event.id}`, {
                     method: 'PUT',
+                    credentials: 'same-origin',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
                         start: info.event.startStr,
@@ -112,6 +113,7 @@
             eventResize: function (info) {
                 fetch(`/api/events/${info.event.id}`, {
                     method: 'PUT',
+                    credentials: 'same-origin',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
                         start: info.event.startStr,
@@ -217,6 +219,7 @@
         if (currentEventId) {
             fetch(`/api/events/${currentEventId}`, {
                 method: 'PUT',
+                credentials: 'same-origin',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(data)
             }).then(() => {
@@ -226,6 +229,7 @@
         } else {
             fetch('/api/events', {
                 method: 'POST',
+                credentials: 'same-origin',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(data)
             }).then(() => {
@@ -238,7 +242,7 @@
     function deleteEvent() {
         if (!currentEventId) return;
         if (!confirm('このイベントを削除しますか？')) return;
-        fetch(`/api/events/${currentEventId}`, { method: 'DELETE' })
+        fetch(`/api/events/${currentEventId}`, { method: 'DELETE', credentials: 'same-origin' })
             .then(() => {
                 calendar.refetchEvents();
                 closeModal();
