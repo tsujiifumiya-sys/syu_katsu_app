@@ -1960,3 +1960,24 @@ tr.deadline-soon td:first-child {
     margin-bottom: 0.5rem;
     padding-left: 0.25rem;
 }
+
+/* --- イベント種別バッジの色分け --- */
+.event-type-badge.event-type-説明会 {
+    color: #818cf8;
+    background: rgba(99, 102, 241, 0.15);
+}
+
+.event-type-badge.event-type-面接 {
+    color: #f87171;
+    background: rgba(239, 68, 68, 0.15);
+}
+
+.event-type-badge.event-type-ES締め切り {
+    color: #fbbf24;
+    background: rgba(245, 158, 11, 0.15);
+}
+
+.event-type-badge.event-type-その他 {
+    color: #94a3b8;
+    background: rgba(100, 116, 139, 0.15);
+}

@@ -60,23 +60,22 @@ def dashboard():
     user = User.query.first()
     companies = Company.query.filter_by(user_id=user.id).order_by(Company.preference.desc()).all()
 
+    # 直近イベント（「その他」と「ES締め切り」は除外）
     upcoming = (
         Schedule.query.filter_by(user_id=user.id)
         .filter(Schedule.start_at >= datetime.now(timezone.utc))
-        .filter(Schedule.event_type != "その他")
+        .filter(Schedule.event_type.notin_(["その他", "ES締め切り"]))
         .order_by(Schedule.start_at)
         .limit(5)
         .all()
     )
 
-    # ES締切ウィジェット: 未提出のESを締切順で取得
+    # ES締切: カレンダーの「ES締め切り」種別イベントから取得
     from datetime import date
-    es_deadlines = (
-        EntrySheet.query.join(Company)
-        .filter(Company.user_id == user.id)
-        .filter(EntrySheet.status.in_(['下書き']))
-        .filter(EntrySheet.deadline.isnot(None))
-        .order_by(EntrySheet.deadline.asc())
+    es_events = (
+        Schedule.query.filter_by(user_id=user.id, event_type="ES締め切り")
+        .filter(Schedule.start_at >= datetime.now(timezone.utc))
+        .order_by(Schedule.start_at)
         .limit(8)
         .all()
     )
@@ -106,7 +105,7 @@ def dashboard():
         companies=companies,
         company_groups=company_groups,
         upcoming=upcoming,
-        es_deadlines=es_deadlines,
+        es_events=es_events,
         today=today,
     )
 

@@ -97,7 +97,8 @@
                 openEventModal(info.event);
             },
             select: function (info) {
-                openEventModal(null, info.startStr, info.endStr);
+                // FullCalendar の月表示では endStr が翌日になるため、startStr を終了日にも使用
+                openEventModal(null, info.startStr, info.startStr);
             },
             eventDrop: function (info) {
                 fetch(`/api/events/${info.event.id}`, {
