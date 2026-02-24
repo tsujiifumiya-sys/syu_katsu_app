@@ -125,6 +125,14 @@
         calendar.render();
 
         document.getElementById('eventForm').addEventListener('submit', submitEvent);
+
+        // 開始日を変更したら終了日も同じ値をデフォルトセット
+        document.getElementById('eventStartDate').addEventListener('change', function () {
+            const endDate = document.getElementById('eventEndDate');
+            if (!endDate.value) {
+                endDate.value = this.value;
+            }
+        });
     });
 
     // 日付 + 時間を ISO 文字列に結合するヘルパー
