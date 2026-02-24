@@ -87,7 +87,7 @@
     <a href="{{ url_for('main.company_new') }}" class="btn btn-primary btn-sm">企業を追加</a>
 </div>
 {% else %}
-{% set group_icons = {"エントリー": "📋", "書類選考": "📝", "適性検査": "🧪", "選考中": "🔄"} %}
+{% set group_icons = {"エントリー開始待ち": "⏳", "エントリー": "📋", "書類選考": "📝", "適性検査": "🧪", "選考中": "🔄"} %}
 {% for group_name, group_companies in company_groups.items() %}
 {% if group_companies %}
 <div class="company-group" style="margin-bottom: 1.5rem;">

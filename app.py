@@ -83,6 +83,7 @@ def dashboard():
 
     # 企業を最新の選考段階でグループ分け
     company_groups = {
+        "エントリー開始待ち": [],
         "エントリー": [],
         "書類選考": [],
         "適性検査": [],
@@ -91,7 +92,9 @@ def dashboard():
     for c in companies:
         latest = c.latest_selection
         if not latest:
-            company_groups["エントリー"].append(c)
+            company_groups["エントリー開始待ち"].append(c)
+        elif latest.stage == "エントリー開始待ち":
+            company_groups["エントリー開始待ち"].append(c)
         elif latest.stage == "エントリー":
             company_groups["エントリー"].append(c)
         elif latest.stage == "書類選考":
