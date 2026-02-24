@@ -63,6 +63,7 @@ def dashboard():
     upcoming = (
         Schedule.query.filter_by(user_id=user.id)
         .filter(Schedule.start_at >= datetime.now(timezone.utc))
+        .filter(Schedule.event_type != "その他")
         .order_by(Schedule.start_at)
         .limit(5)
         .all()
@@ -301,6 +302,16 @@ def axis_new():
         priority=int(request.form.get("priority", 1)),
     )
     db.session.add(axis)
+    db.session.commit()
+    return redirect(url_for("main.axes_list"))
+
+
+@main_bp.route("/axes/<int:axis_id>/edit", methods=["POST"])
+def axis_edit(axis_id):
+    axis = JobAxis.query.get_or_404(axis_id)
+    axis.name = request.form.get("name", axis.name)
+    axis.description = request.form.get("description", "")
+    axis.priority = int(request.form.get("priority", axis.priority))
     db.session.commit()
     return redirect(url_for("main.axes_list"))
 

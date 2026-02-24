@@ -11,18 +11,53 @@
 {% if axes %}
 <div class="axes-list">
     {% for axis in axes %}
-    <div class="axis-card">
-        <div class="axis-header">
-            <span class="axis-priority">{{ axis.priority }}</span>
-            <span class="axis-name">{{ axis.name }}</span>
-            <form method="POST" action="{{ url_for('main.axis_delete', axis_id=axis.id) }}" class="inline-form"
-                onsubmit="return confirm('削除しますか？')">
-                <button type="submit" class="btn btn-sm btn-danger-ghost">✕</button>
+    <div class="axis-card" id="axis-{{ axis.id }}">
+        <!-- 表示モード -->
+        <div class="axis-view" id="axis-view-{{ axis.id }}">
+            <div class="axis-header">
+                <span class="axis-priority">{{ axis.priority }}</span>
+                <span class="axis-name">{{ axis.name }}</span>
+                <div class="axis-actions">
+                    <button type="button" class="btn btn-sm btn-ghost" onclick="toggleEdit({{ axis.id }})">✏️
+                        編集</button>
+                    <form method="POST" action="{{ url_for('main.axis_delete', axis_id=axis.id) }}" class="inline-form"
+                        onsubmit="return confirm('削除しますか？')">
+                        <button type="submit" class="btn btn-sm btn-danger-ghost">✕</button>
+                    </form>
+                </div>
+            </div>
+            {% if axis.description %}
+            <p class="axis-description">{{ axis.description }}</p>
+            {% else %}
+            <p class="axis-description text-muted">（説明未設定）</p>
+            {% endif %}
+        </div>
+
+        <!-- 編集モード -->
+        <div class="axis-edit" id="axis-edit-{{ axis.id }}" style="display: none;">
+            <form method="POST" action="{{ url_for('main.axis_edit', axis_id=axis.id) }}">
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label>軸の名前</label>
+                        <input type="text" name="name" value="{{ axis.name }}" required>
+                    </div>
+                    <div class="form-group">
+                        <label>優先度</label>
+                        <input type="number" name="priority" min="1" max="10" value="{{ axis.priority }}">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>説明 / 定義</label>
+                    <textarea name="description" rows="3"
+                        placeholder="この軸の詳細な定義">{{ axis.description or '' }}</textarea>
+                </div>
+                <div class="form-actions">
+                    <button type="submit" class="btn btn-primary btn-sm">保存</button>
+                    <button type="button" class="btn btn-ghost btn-sm"
+                        onclick="toggleEdit({{ axis.id }})">キャンセル</button>
+                </div>
             </form>
         </div>
-        {% if axis.description %}
-        <p class="axis-description">{{ axis.description }}</p>
-        {% endif %}
     </div>
     {% endfor %}
 </div>
@@ -54,4 +89,18 @@
         <button type="submit" class="btn btn-primary">追加する</button>
     </form>
 </div>
+
+<script>
+    function toggleEdit(axisId) {
+        const view = document.getElementById('axis-view-' + axisId);
+        const edit = document.getElementById('axis-edit-' + axisId);
+        if (edit.style.display === 'none') {
+            edit.style.display = 'block';
+            view.style.display = 'none';
+        } else {
+            edit.style.display = 'none';
+            view.style.display = 'block';
+        }
+    }
+</script>
 {% endblock %}
