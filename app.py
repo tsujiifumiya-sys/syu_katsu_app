@@ -2,10 +2,12 @@
 
 import os
 from datetime import datetime, timezone
+from functools import wraps
 
 from flask import (
     Blueprint,
     Flask,
+    Response,
     jsonify,
     redirect,
     render_template,
@@ -635,6 +637,28 @@ def create_app():
 
     # Blueprint をアプリに登録
     app.register_blueprint(main_bp)
+
+    # ----------------------------------------------------------
+    # Basic 認証（環境変数で有効化、ローカル開発時は無効）
+    # ----------------------------------------------------------
+    auth_user = os.environ.get("BASIC_AUTH_USERNAME")
+    auth_pass = os.environ.get("BASIC_AUTH_PASSWORD")
+
+    if auth_user and auth_pass:
+
+        @app.before_request
+        def require_basic_auth():
+            auth = request.authorization
+            if (
+                not auth
+                or auth.username != auth_user
+                or auth.password != auth_pass
+            ):
+                return Response(
+                    "認証が必要です。",
+                    401,
+                    {"WWW-Authenticate": 'Basic realm="Syu_katsu"'},
+                )
 
     with app.app_context():
         db.create_all()

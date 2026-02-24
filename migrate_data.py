@@ -6,10 +6,11 @@ from sqlalchemy import create_engine, text
 
 # --- 設定 ---
 SQLITE_PATH = os.path.join(os.path.dirname(__file__), "syuukatsu.db")
-PG_URL = os.environ.get(
-    "DATABASE_URL",
-    "postgresql://neondb_owner:npg_aK8johTJOuU1@ep-blue-field-a1a7soyx-pooler.ap-southeast-1.aws.neon.tech/neondb?sslmode=require",
-)
+PG_URL = os.environ.get("DATABASE_URL")
+if not PG_URL:
+    print("ERROR: 環境変数 DATABASE_URL を設定してください。")
+    print("  例: $env:DATABASE_URL = 'postgresql://user:pass@host/db'")
+    exit(1)
 
 # テーブルの移行順序（外部キー依存を考慮）
 TABLES = [
