@@ -1,0 +1,211 @@
+================================================================================
+  Syu_katsu — 就活管理アプリ 技術解説書
+  最終更新: 2026年2月26日
+================================================================================
+
+
+■ 概要
+--------------------------------------------------------------------------------
+Syu_katsu は、個人の就職活動を一元管理するためのWebアプリケーションです。
+企業情報・選考状況・ES（エントリーシート）・スケジュールを管理でき、
+ダッシュボードで全体像を素早く把握できます。
+
+本番環境は Render（PaaS）上にデプロイされ、PostgreSQL で永続化しています。
+ローカル開発時は SQLite で動作するため、追加のセットアップは不要です。
+
+
+■ 技術スタック
+--------------------------------------------------------------------------------
+  バックエンド  : Python 3.12 + Flask（軽量Webフレームワーク）
+  ORM          : Flask-SQLAlchemy（SQLAlchemy のFlask用ラッパー）
+  データベース  : PostgreSQL（本番 / Neon経由） / SQLite（ローカル開発）
+  テンプレート  : Jinja2（Flask標準のHTMLテンプレートエンジン）
+  フロントエンド : HTML + CSS + JavaScript（フレームワーク不使用）
+  カレンダー    : FullCalendar.js v6（JavaScriptカレンダーライブラリ）
+  フォント      : Google Fonts（Inter, Noto Sans JP）
+  デプロイ      : Render + Gunicorn（Pythonの本番用WSGIサーバー）
+  認証          : Basic認証（環境変数で有効/無効を切り替え）
+
+
+■ ファイル構成と各ファイルの役割
+--------------------------------------------------------------------------------
+syu_katsu_app/
+│
+├── app.py              ... Flaskアプリケーション本体
+│                          ・全ルーティング（URL → 処理の対応付け）を定義
+│                          ・Blueprint パターンで構造化
+│                          ・create_app() ファクトリ関数でアプリを生成
+│                          ・Basic認証は before_request フックで実装
+│
+├── config.py           ... 設定ファイル
+│                          ・DATABASE_URL 環境変数があれば PostgreSQL を使用
+│                          ・なければ syuukatsu.db（SQLite）を使用
+│                          ・PyInstaller でexe化する際のパス解決も対応
+│
+├── models.py           ... データベースモデル定義
+│                          ・SQLAlchemy の宣言的モデル（後述）
+│                          ・選考段階・ステータスの定数リストもここで管理
+│
+├── requirements.txt    ... Pythonパッケージの依存一覧
+│                          ・pip install -r requirements.txt で一括インストール
+│
+├── render.yaml         ... Render のデプロイ設定
+│                          ・起動コマンド: gunicorn app:app
+│
+├── migrate_data.py     ... SQLite → PostgreSQL データ移行スクリプト
+│
+├── static/
+│   └── style.css       ... CSSデザインシステム（約2000行）
+│                          ・ダークテーマベース
+│                          ・CSS変数でカラー・フォント・間隔を一元管理
+│
+└── templates/          ... Jinja2テンプレート（HTML）
+    ├── base.html           ... 共通ベーステンプレート（サイドバー）
+    ├── dashboard.html      ... ダッシュボード
+    ├── companies.html      ... 企業一覧
+    ├── company_form.html   ... 企業登録・編集フォーム
+    ├── company_detail.html ... 企業詳細 + 選考カード管理
+    ├── calendar.html       ... FullCalendarカレンダー
+    ├── axes.html           ... 就活軸管理
+    ├── es_list.html        ... ES一覧
+    └── es_form.html        ... ES登録・編集
+
+
+■ データベース設計（テーブル一覧）
+--------------------------------------------------------------------------------
+
+  1. users（ユーザー）
+     ─ id, name, email, university, research_theme, created_at
+     ─ アプリ起動時にデフォルトユーザーが自動作成される
+
+  2. companies（企業）
+     ─ id, user_id(FK), name, industry, job_type, preference(志望度1-5),
+        mypage_url, mypage_id, mypage_password, notes, created_at
+     ─ @property latest_selection で最新の選考状況を取得
+     ─ @property status_label で現在のステータスラベルを返す
+
+  3. selections（選考）
+     ─ id, company_id(FK), stage, status, scheduled_at, location,
+        feedback, created_at
+     ─ stage: エントリー開始待ち / エントリー / 書類選考 / 適性検査 /
+              1次面接 / 2次面接 / 3次面接 / 最終面接
+     ─ status: 予定 / 結果待ち / 合格 / 不合格 / 辞退 / 内定
+
+  4. interview_notes（面接振り返りノート）
+     ─ id, selection_id(FK), question, answer, reflection
+
+  5. entry_sheets（エントリーシート）
+     ─ id, company_id(FK), question, answer, char_limit, deadline,
+        status(下書き/提出済み/合格/不合格), created_at
+
+  6. job_axes（就活軸）
+     ─ id, user_id(FK), name, description, priority
+
+  7. schedules（スケジュール）
+     ─ id, user_id(FK), company_id(FK/nullable), event_type, title,
+        start_at, end_at, location_or_url, reminder, created_at
+     ─ event_type: 説明会 / ES締め切り / 面接 / その他
+
+  ※ リレーション:
+     User ─┬─→ Company ─┬─→ Selection ─→ InterviewNote
+           │             ├─→ EntrySheet
+           │             └─→ Schedule
+           ├─→ JobAxis
+           └─→ Schedule
+
+
+■ 画面構成とルーティング
+--------------------------------------------------------------------------------
+
+  画面                URL                       メソッド   説明
+  ─────────────────────────────────────────────────────────────────
+  ダッシュボード      /                          GET       直近イベント、ES締切、企業グループ一覧
+  企業一覧            /companies                 GET       全企業カード表示
+  企業追加            /companies/new             GET/POST  企業情報の入力
+  企業詳細            /companies/<id>            GET       企業情報 + 選考カード管理
+  企業編集            /companies/<id>/edit        GET/POST  企業情報の更新
+  企業削除            /companies/<id>/delete      POST      企業の削除
+  選考追加            /companies/<id>/selections  POST      新しい選考を追加
+  選考更新            /selections/<id>/update     POST      選考（段階・ステータス等）の更新
+  選考削除            /selections/<id>/delete     GET       選考の削除
+  カレンダー          /calendar                  GET       月/週/日カレンダー表示
+  イベントAPI取得     /api/events                GET       FullCalendar用JSON API
+  イベントAPI追加     /api/events                POST      イベントのJSON作成
+  イベントAPI更新     /api/events/<id>           PUT       イベントのJSON更新
+  イベントAPI削除     /api/events/<id>           DELETE    イベントのJSON削除
+  就活軸一覧          /axes                      GET       軸の表示
+  就活軸追加          /axes/new                  POST      軸の追加
+  就活軸編集          /axes/<id>/edit            POST      軸のインライン編集
+  就活軸削除          /axes/<id>/delete          POST      軸の削除
+  ES一覧              /es                        GET       全ESの表示
+  ES追加              /es/new                    GET/POST  ES設問・回答の入力
+  ES編集              /es/<id>/edit              GET/POST  ESの更新
+  ES削除              /es/<id>/delete            POST      ESの削除
+  企業一覧API         /api/companies             GET       カレンダードロップダウン用
+
+
+■ アプリケーションの動作フロー
+--------------------------------------------------------------------------------
+
+  1. ユーザーがブラウザでアクセス
+       ↓
+  2. Render (本番) もしくは Flask dev server (ローカル) がリクエストを受信
+       ↓
+  3. Basic認証チェック（本番環境のみ、環境変数で制御）
+       ↓
+  4. Blueprint (main_bp) でURLに対応するルート関数を実行
+       ↓
+  5. SQLAlchemy を通じて PostgreSQL/SQLite にクエリ
+       ↓
+  6. Jinja2 テンプレートにデータを渡してHTMLをレンダリング
+       ↓
+  7. ブラウザにレスポンスを返す
+
+  ※ カレンダー画面のみ、JavaScript (FullCalendar) が REST API 経由で
+    非同期にイベントの CRUD を行うSPA的な構成になっている。
+
+
+■ デプロイ構成
+--------------------------------------------------------------------------------
+
+  [ユーザーのブラウザ]
+        ↓ HTTPS
+  [Render Web Service]
+    ├─ Gunicorn (WSGIサーバー) → Flask app
+    └─ 環境変数:
+         DATABASE_URL       → Neon (PostgreSQL)
+         SECRET_KEY          → セッション暗号化キー
+         BASIC_AUTH_USERNAME → Basic認証ユーザー名
+         BASIC_AUTH_PASSWORD → Basic認証パスワード
+
+
+■ 主要な設計判断と学び
+--------------------------------------------------------------------------------
+
+  1. Blueprint パターン
+     ・Flaskの Blueprint を使うことで、ルーティングをモジュール化。
+     ・create_app() ファクトリ関数で、アプリ生成と設定を分離。
+
+  2. ナイーブ datetime 問題
+     ・DBにはタイムゾーン情報なしの datetime が保存されている。
+     ・イベントの比較には JST (UTC+9) に変換した now() を使用。
+     ・ソート時に None を最後に配置するタプルキー方式を採用。
+
+  3. 環境の切り替え
+     ・DATABASE_URL 環境変数の有無でDB（PostgreSQL / SQLite）を自動切替。
+     ・BASIC_AUTH_* 環境変数の有無で認証の有効/無効を自動切替。
+     ・同じコードベースでローカル開発と本番デプロイの両方に対応。
+
+  4. CSS デザインシステム
+     ・CSS変数 (--primary, --card-bg 等) で一貫したデザイントークンを管理。
+     ・ダークテーマをベースにした統一的なUI。
+     ・レスポンシブ対応のサイドバーナビゲーション。
+
+  5. FullCalendar 連携
+     ・REST API (JSON) でイベントの CRUD を実装。
+     ・既存のFlask テンプレートと API の二重構成で柔軟な画面設計。
+
+
+================================================================================
+  以上
+================================================================================
