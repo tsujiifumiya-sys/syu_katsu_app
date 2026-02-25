@@ -56,10 +56,14 @@ def dashboard():
     user = User.query.first()
     companies = Company.query.filter_by(user_id=user.id).order_by(Company.preference.desc()).all()
 
+    # 日本時間（JST）基準で現在時刻を取得（DBはnaive datetimeで保存されているため）
+    from datetime import date, timedelta
+    now_jst = datetime.utcnow() + timedelta(hours=9)
+
     # 直近イベント（「その他」と「ES締め切り」は除外）
     upcoming = (
         Schedule.query.filter_by(user_id=user.id)
-        .filter(Schedule.start_at >= datetime.now(timezone.utc))
+        .filter(Schedule.start_at >= now_jst)
         .filter(Schedule.event_type.notin_(["その他", "ES締め切り"]))
         .order_by(Schedule.start_at)
         .limit(5)
@@ -67,10 +71,9 @@ def dashboard():
     )
 
     # ES締切: カレンダーの「ES締め切り」種別イベントから取得
-    from datetime import date
     es_events = (
         Schedule.query.filter_by(user_id=user.id, event_type="ES締め切り")
-        .filter(Schedule.start_at >= datetime.now(timezone.utc))
+        .filter(Schedule.start_at >= now_jst)
         .order_by(Schedule.start_at)
         .limit(8)
         .all()
