@@ -24,7 +24,6 @@ class User(db.Model):
     companies = db.relationship("Company", backref="user", lazy=True, cascade="all, delete-orphan")
     job_axes = db.relationship("JobAxis", backref="user", lazy=True, cascade="all, delete-orphan")
     schedules = db.relationship("Schedule", backref="user", lazy=True, cascade="all, delete-orphan")
-    self_analyses = db.relationship("SelfAnalysis", backref="user", lazy=True, cascade="all, delete-orphan")
 
 
 # ---------------------------------------------------------------------------
@@ -39,16 +38,6 @@ class JobAxis(db.Model):
     description = db.Column(db.Text, nullable=True)
     priority = db.Column(db.Integer, default=1)
 
-
-# ---------------------------------------------------------------------------
-# 企業×軸 合致度（多対多の中間テーブル）
-# ---------------------------------------------------------------------------
-class CompanyAxisMatch(db.Model):
-    __tablename__ = "company_axis_match"
-
-    company_id = db.Column(db.Integer, db.ForeignKey("companies.id"), primary_key=True)
-    axis_id = db.Column(db.Integer, db.ForeignKey("job_axes.id"), primary_key=True)
-    score = db.Column(db.Integer, default=3)  # 1〜5
 
 
 # ---------------------------------------------------------------------------
@@ -72,10 +61,8 @@ class Company(db.Model):
 
     # リレーション
     selections = db.relationship("Selection", backref="company", lazy=True, cascade="all, delete-orphan")
-    motivations = db.relationship("Motivation", backref="company", lazy=True, cascade="all, delete-orphan")
     entry_sheets = db.relationship("EntrySheet", backref="company", lazy=True, cascade="all, delete-orphan")
     schedules = db.relationship("Schedule", backref="company", lazy=True)
-    axis_matches = db.relationship("CompanyAxisMatch", backref="company", lazy=True, cascade="all, delete-orphan")
 
     @property
     def latest_selection(self):
@@ -146,20 +133,6 @@ class InterviewNote(db.Model):
     reflection = db.Column(db.Text, nullable=True)
 
 
-# ---------------------------------------------------------------------------
-# 志望動機
-# ---------------------------------------------------------------------------
-class Motivation(db.Model):
-    __tablename__ = "motivations"
-
-    id = db.Column(db.Integer, primary_key=True)
-    company_id = db.Column(db.Integer, db.ForeignKey("companies.id"), nullable=False)
-    content = db.Column(db.Text, nullable=False)
-    version = db.Column(db.Integer, default=1)
-    target_use = db.Column(db.String(50), nullable=True)  # ES / 面接
-    review_notes = db.Column(db.Text, nullable=True)
-    created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
-
 
 # ---------------------------------------------------------------------------
 # ES（エントリーシート）
@@ -203,18 +176,4 @@ class Schedule(db.Model):
     created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
 
 
-# ---------------------------------------------------------------------------
-# 自己分析
-# ---------------------------------------------------------------------------
-ANALYSIS_CATEGORIES = ["自己PR", "ガクチカ", "長所", "短所"]
 
-
-class SelfAnalysis(db.Model):
-    __tablename__ = "self_analyses"
-
-    id = db.Column(db.Integer, primary_key=True)
-    user_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=False)
-    category = db.Column(db.String(50), nullable=False)  # ANALYSIS_CATEGORIES の値
-    content = db.Column(db.Text, nullable=False)
-    version = db.Column(db.Integer, default=1)
-    created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))

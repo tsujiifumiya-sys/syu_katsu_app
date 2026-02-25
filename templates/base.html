@@ -36,22 +36,6 @@
                     class="nav-link {% if 'axis' in (request.endpoint or '') or 'axes' in (request.endpoint or '') %}active{% endif %}">
                     <span class="nav-icon">🎯</span><span class="nav-label">就活軸</span>
                 </a></li>
-            <li><a href="{{ url_for('main.axis_matrix') }}"
-                    class="nav-link {% if 'matrix' in (request.endpoint or '') %}active{% endif %}">
-                    <span class="nav-icon">📊</span><span class="nav-label">軸マトリックス</span>
-                </a></li>
-            <li><a href="{{ url_for('main.es_list') }}"
-                    class="nav-link {% if 'es_' in (request.endpoint or '') %}active{% endif %}">
-                    <span class="nav-icon">📝</span><span class="nav-label">ES管理</span>
-                </a></li>
-            <li><a href="{{ url_for('main.motivation_list') }}"
-                    class="nav-link {% if 'motivation' in (request.endpoint or '') %}active{% endif %}">
-                    <span class="nav-icon">💌</span><span class="nav-label">志望動機</span>
-                </a></li>
-            <li><a href="{{ url_for('main.self_analysis_list') }}"
-                    class="nav-link {% if 'self_analysis' in (request.endpoint or '') %}active{% endif %}">
-                    <span class="nav-icon">🔍</span><span class="nav-label">自己分析</span>
-                </a></li>
         </ul>
         <div class="sidebar-footer">
             <div class="user-info">
