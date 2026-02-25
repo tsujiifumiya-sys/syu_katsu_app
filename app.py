@@ -17,19 +17,15 @@ from flask import (
 
 from config import Config, RESOURCE_DIR
 from models import (
-    ANALYSIS_CATEGORIES,
     EVENT_TYPES,
     SELECTION_STAGES,
     SELECTION_STATUSES,
     Company,
-    CompanyAxisMatch,
     EntrySheet,
     InterviewNote,
     JobAxis,
-    Motivation,
     Schedule,
     Selection,
-    SelfAnalysis,
     User,
     db,
 )
